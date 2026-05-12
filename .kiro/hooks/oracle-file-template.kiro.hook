@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Oracle File Template",
+  "description": "Al crear un nuevo archivo SQL, genera automáticamente el header estándar con CREATE OR REPLACE y el formato del equipo",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": [
+      "Base Datos/**/*.sql",
+      "Base Datos/**/*.pks",
+      "Base Datos/**/*.pkb",
+      "Base Datos/**/*.fnc"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Se creó un nuevo archivo de base de datos Oracle. Si está vacío, genera un template apropiado según la extensión: .pks (package spec con CREATE OR REPLACE PACKAGE), .pkb (package body), .fnc (function con CREATE OR REPLACE FUNCTION), .sql (header con comentario de descripción). Sigue las convenciones del equipo: keywords en UPPERCASE, identación de 2 espacios, terminar con / en línea separada."
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "Oracle Query Safety",
+  "description": "Valida que las queries Oracle sean solo SELECT y tengan ROWNUM antes de ejecutarlas. Protección contra DML accidental.",
+  "version": "1.0.0",
+  "when": {
+    "type": "preToolUse",
+    "toolTypes": [".*query.*"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Antes de ejecutar esta query Oracle, verifica: 1) ¿Es solo SELECT o WITH/CTE? Si contiene INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, MERGE → BLOQUEAR y NO ejecutar. 2) ¿Tiene ROWNUM <= 50 o FETCH FIRST? Si no tiene límite → agregar ROWNUM <= 50 antes de ejecutar. 3) ¿Usa esquema OPS$PUMA? Si no especifica esquema, asumir OPS$PUMA. Si la query es segura, procede con la ejecución. Si no es segura, DENIEGA el acceso y explica por qué."
+  }
+}
