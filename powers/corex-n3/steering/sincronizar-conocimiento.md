@@ -15,19 +15,19 @@ Cuando el usuario diga: "actualiza conocimiento", "sincroniza KB", "comparte lo 
 Ejecutar el script de export:
 
 ```bash
-bash .kiro/scripts/engram-sync.sh export
+bash powers/corex-n3/scripts/engram-sync.sh export
 ```
 
 Si el script no existe en el proyecto actual, usar directamente:
 
 ```bash
-engram export ~/.kiro/shared-knowledge/engram-export.json
+engram export ~/shared-knowledge/engram-export.json
 ```
 
 ### Paso 2 — Commit y push
 
 ```bash
-git -C <ruta-repo-corex-n3-power> add .kiro/shared-knowledge/
+git -C <ruta-repo-corex-n3-power> add shared-knowledge/
 git -C <ruta-repo-corex-n3-power> commit -m "docs: sync engram knowledge - $(date +%Y-%m-%d)"
 git -C <ruta-repo-corex-n3-power> push
 ```

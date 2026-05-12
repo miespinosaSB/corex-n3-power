@@ -21,7 +21,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-SHARED_DIR="$REPO_ROOT/.kiro/shared-knowledge"
+SHARED_DIR="$REPO_ROOT/shared-knowledge"
 CURRENT_USER=$(git config user.name 2>/dev/null || echo "unknown")
 CURRENT_USER_SLUG=$(echo "$CURRENT_USER" | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
 EXPORT_FILE="$SHARED_DIR/${CURRENT_USER_SLUG}.json"
