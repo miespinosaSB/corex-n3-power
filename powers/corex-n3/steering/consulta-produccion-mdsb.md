@@ -47,20 +47,41 @@ Ejecutar este script Python que hace todo en un solo paso (upload + create reque
 ```python
 #!/usr/bin/env python3
 """Crea un request MDSB con consulta SQL para el bot AIOps."""
-import json, urllib.request, base64, ssl, os, re
+import json, urllib.request, base64, ssl, os, sys
 
-# --- Leer credenciales de ~/.kiro/settings/.env ---
-env_path = os.path.expanduser("~/.kiro/settings/.env")
-env_vars = {}
-with open(env_path) as f:
-    for line in f:
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            key, val = line.split("=", 1)
-            env_vars[key.strip()] = val.strip()
+# --- Leer credenciales (cross-platform) ---
+def load_credentials():
+    """Busca credenciales en .env (macOS/Linux) o mcp.json (Windows)."""
+    home = os.path.expanduser("~")
+    
+    # Intento 1: ~/.kiro/settings/.env (macOS/Linux)
+    env_path = os.path.join(home, ".kiro", "settings", ".env")
+    if os.path.exists(env_path):
+        env_vars = {}
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    env_vars[key.strip()] = val.strip()
+        if "JIRA_USERNAME" in env_vars and "JIRA_API_TOKEN" in env_vars:
+            return env_vars["JIRA_USERNAME"], env_vars["JIRA_API_TOKEN"]
+    
+    # Intento 2: ~/.kiro/settings/mcp.json (Windows)
+    mcp_path = os.path.join(home, ".kiro", "settings", "mcp.json")
+    if os.path.exists(mcp_path):
+        with open(mcp_path) as f:
+            mcp = json.load(f)
+        atlassian_env = mcp.get("mcpServers", {}).get("mcp-atlassian", {}).get("env", {})
+        username = atlassian_env.get("JIRA_USERNAME")
+        token = atlassian_env.get("JIRA_API_TOKEN")
+        if username and token:
+            return username, token
+    
+    print("❌ No se encontraron credenciales en ~/.kiro/settings/.env ni en ~/.kiro/settings/mcp.json")
+    sys.exit(1)
 
-EMAIL = env_vars["JIRA_USERNAME"]
-TOKEN = env_vars["JIRA_API_TOKEN"]
+EMAIL, TOKEN = load_credentials()
 CREDS = base64.b64encode(f"{EMAIL}:{TOKEN}".encode()).decode()
 BASE_URL = "https://jirasegurosbolivar.atlassian.net"
 CTX = ssl.create_default_context()
@@ -179,17 +200,14 @@ Cuando el usuario diga "ya está", "lee el resultado", "qué salió", etc.:
 
 ## Credenciales
 
-⚠️ **Las credenciales NO están en variables de entorno del shell.** Están en el archivo:
+⚠️ **Las credenciales NO están en variables de entorno del shell.** Según el OS están en:
 
-```
-~/.kiro/settings/.env
-```
+| OS | Ubicación | Formato |
+|---|---|---|
+| **macOS/Linux** | `~/.kiro/settings/.env` | `JIRA_USERNAME=...` y `JIRA_API_TOKEN=...` |
+| **Windows** | `~/.kiro/settings/mcp.json` | Dentro de `mcpServers.mcp-atlassian.env.JIRA_USERNAME` |
 
-Variables disponibles:
-- `JIRA_USERNAME` — email corporativo
-- `JIRA_API_TOKEN` — token de Atlassian
-
-**El script Python las lee directamente de ese archivo.** No intentar usar `$JIRA_USERNAME` en bash ni `os.environ["JIRA_USERNAME"]` — no funcionará. Siempre leer el archivo `.env` con `open()`.
+**El script Python busca automáticamente en ambas ubicaciones.** No intentar usar `$JIRA_USERNAME` en bash ni `os.environ["JIRA_USERNAME"]` — no funcionará.
 
 ## Notas importantes
 
