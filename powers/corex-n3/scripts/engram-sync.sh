@@ -3,13 +3,13 @@
 # engram-sync.sh — Sincronización de conocimiento Engram entre compañeros
 #
 # Uso:
-#   ./engram-sync.sh export   → Exporta memorias locales a .kiro/shared-knowledge/
+#   ./engram-sync.sh export   → Exporta memorias locales a shared-knowledge/
 #   ./engram-sync.sh import   → Importa memorias de compañeros desde Git
 #   ./engram-sync.sh status   → Muestra estado de sincronización
 #
 # Flujo:
 #   1. Cada dev exporta sus memorias relevantes (tipo: pattern, architecture, decision, bugfix)
-#   2. Se commitean en .kiro/shared-knowledge/<usuario>.json
+#   2. Se commitean en shared-knowledge/<usuario>.json
 #   3. Al hacer pull, cada dev importa las memorias nuevas de los demás
 #
 # Requisitos:
@@ -72,13 +72,13 @@ NO se exportan: `manual`, `learning`, `discovery`, `config` (son personales).
 
 ```bash
 # Exportar tus memorias al repo
-.kiro/scripts/engram-sync.sh export
+powers/corex-n3/scripts/engram-sync.sh export
 
 # Importar memorias de compañeros
-.kiro/scripts/engram-sync.sh import
+powers/corex-n3/scripts/engram-sync.sh import
 
 # Ver estado
-.kiro/scripts/engram-sync.sh status
+powers/corex-n3/scripts/engram-sync.sh status
 ```
 EOF
     fi
@@ -167,7 +167,7 @@ EOJSON
     }
 
     log_ok "Archivo exportado: $EXPORT_FILE"
-    log_info "Recuerda hacer commit: git add .kiro/shared-knowledge/ && git commit -m 'chore: sync engram knowledge'"
+    log_info "Recuerda hacer commit: git add shared-knowledge/ && git commit -m 'chore: sync engram knowledge'"
 }
 
 do_import() {

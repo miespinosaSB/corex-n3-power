@@ -3,9 +3,9 @@
 # Genera un índice ligero de programas COBOL y Forms disponibles en los repos hermanos.
 # Ejecutar desde la raíz de tronador-oracle-db o con TRONADOR_BASE configurado.
 #
-# Uso: bash .kiro/scripts/generate-source-index.sh
+# Uso: bash powers/corex-n3/scripts/generate-source-index.sh
 #
-# Output: .kiro/shared-knowledge/source-index.json
+# Output: shared-knowledge/source-index.json
 
 set -euo pipefail
 

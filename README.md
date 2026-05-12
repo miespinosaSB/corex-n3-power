@@ -104,13 +104,6 @@ bash powers/corex-n3/update.sh
 
 ```
 corex-n3-power/
-├── .kiro/
-│   ├── agents/              # 3 sub-agentes
-│   ├── hooks/               # 19 hooks
-│   ├── scripts/             # engram-sync, metrics, source-index
-│   ├── steering/            # 13 steering de proyecto
-│   ├── shared-knowledge/    # Memorias Engram compartidas (Git)
-│   └── metrics/
 ├── powers/corex-n3/         # El power source
 │   ├── POWER.md             # Documentación interna
 │   ├── GUIA-USO.md          # Guía práctica

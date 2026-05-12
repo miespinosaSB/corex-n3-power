@@ -11,7 +11,7 @@ Cuando durante un diagnóstico se identifique un programa COBOL o pantalla Forms
 ## Flujo
 
 1. **Detectar referencia** — El caso menciona un programa (ej: "CB226030", "CP200030")
-2. **Consultar índice** — Leer `.kiro/shared-knowledge/source-index.json`
+2. **Consultar índice** — Leer `shared-knowledge/source-index.json`
 3. **Verificar disponibilidad** — Si `cobol.available` o `forms.available` es `true`, el repo está clonado
 4. **Leer código fuente** — Usar la ruta del índice o construirla:
    - COBOL: `../tronador-core-cobol/{NOMBRE}.pco`

@@ -73,7 +73,7 @@ El agente:
 2. Hace commit y push al repo
 3. Propone actualizar Confluence si hay patrones nuevos
 
-También puedes usar los **botones** en el panel de hooks: "Exportar Engram" / "Importar Engram".
+Nota: debes estar en el directorio del repo corex-n3-power para que el script funcione.
 
 ### Retrospectiva
 
@@ -123,8 +123,8 @@ Tú: "Actualiza conocimiento"
 
 O manualmente:
 ```bash
-bash .kiro/scripts/engram-sync.sh export
-git add .kiro/shared-knowledge/
+bash powers/corex-n3/scripts/engram-sync.sh export
+git add shared-knowledge/
 git commit -m "docs: sync engram"
 git push
 ```
@@ -133,7 +133,7 @@ git push
 
 ```bash
 git pull
-bash .kiro/scripts/engram-sync.sh import
+bash powers/corex-n3/scripts/engram-sync.sh import
 ```
 
 O usa el botón "Importar Engram" en hooks.
@@ -145,8 +145,8 @@ Cuando generas microservicios, el agente consulta automáticamente documentació
 ## Métricas
 
 ```bash
-bash .kiro/scripts/metrics-report.sh --period week
-bash .kiro/scripts/metrics-report.sh --period month
+bash powers/corex-n3/scripts/metrics-report.sh --period week
+bash powers/corex-n3/scripts/metrics-report.sh --period month
 ```
 
 ## Tips de eficiencia

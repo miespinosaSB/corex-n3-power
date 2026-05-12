@@ -8,7 +8,7 @@
 #   ./metrics-report.sh week      → Última semana
 #   ./metrics-report.sh summary   → Resumen compacto
 #
-# Lee de: .kiro/metrics/usage.log
+# Lee de: powers/corex-n3/metrics/usage.log
 # Formato del log: TIMESTAMP|TOOL_NAME|SERVER_NAME
 # ============================================================================
 
@@ -16,7 +16,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-METRICS_FILE="$REPO_ROOT/.kiro/metrics/usage.log"
+METRICS_FILE="$REPO_ROOT/powers/corex-n3/metrics/usage.log"
 
 # Colores
 BLUE='\033[0;34m'

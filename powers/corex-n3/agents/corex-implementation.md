@@ -13,4 +13,4 @@ includeMcpJson: true
 
 # Agente de Implementación — Tribu Corex
 
-Ver `.kiro/agents/corex-implementation.prompt.md` para instrucciones completas.
+Ver `powers/corex-n3/agents/corex-implementation.prompt.md` para instrucciones completas.

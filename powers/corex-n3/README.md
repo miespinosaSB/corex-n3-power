@@ -122,22 +122,22 @@ Engram es la memoria persistente del equipo. Cada diagnóstico resuelto, patrón
 
 ```bash
 # Exportar tu conocimiento para el equipo
-bash .kiro/scripts/engram-sync.sh export
+bash powers/corex-n3/scripts/engram-sync.sh export
 
 # Importar conocimiento de compañeros
-bash .kiro/scripts/engram-sync.sh import
+bash powers/corex-n3/scripts/engram-sync.sh import
 ```
 
-La carpeta `.kiro/shared-knowledge/` contiene las memorias exportadas que se comparten via Git.
+La carpeta `shared-knowledge/` contiene las memorias exportadas que se comparten via Git.
 
 ## Métricas
 
 ```bash
 # Reporte de la última semana
-bash .kiro/scripts/metrics-report.sh --period week
+bash powers/corex-n3/scripts/metrics-report.sh --period week
 
 # Reporte del último mes
-bash .kiro/scripts/metrics-report.sh --period month
+bash powers/corex-n3/scripts/metrics-report.sh --period month
 ```
 
 ## Estructura del power
