@@ -1,0 +1,28 @@
+{
+  "name": "corex-retrospective",
+  "displayName": "Corex Retrospective Agent",
+  "description": "Analiza los últimos 30 días de actividad (Engram + Jira) para identificar patrones repetidos, proponer mejoras al power, y actualizar la Base de Conocimiento.",
+  "mcpServers": ["mcp-atlassian", "engram"],
+  "tools": [
+    "mem_search",
+    "mem_save",
+    "mem_session_summary",
+    "mem_get_observation",
+    "mem_context",
+    "jira_search",
+    "jira_get_issue",
+    "confluence_get_page",
+    "confluence_update_page"
+  ],
+  "resources": [],
+  "hooks": {
+    "onSpawn": {
+      "type": "askAgent",
+      "prompt": "Carga el contexto de Engram (mem_context) y la KB de Confluence (page 1677787138) antes de iniciar el análisis."
+    }
+  },
+  "knowledgeBase": [
+    ".kiro/steering/oracle-conventions.md",
+    ".kiro/steering/rule-knowledge-sync.md"
+  ]
+}
