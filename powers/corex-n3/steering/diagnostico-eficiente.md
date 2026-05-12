@@ -4,6 +4,40 @@ inclusion: auto
 
 # Diagnóstico Eficiente — Menos Créditos, Mejor Efectividad
 
+## 🚨 REGLA ABSOLUTA: CERO SUPOSICIONES — Precisión 100% Obligatoria
+
+**Un diagnóstico incorrecto tiene consecuencias graves.** Puede generar cambios innecesarios en producción, afectar pólizas de clientes, o desviar al equipo en la dirección equivocada. Por lo tanto:
+
+### Prohibiciones absolutas:
+- ❌ **NUNCA afirmar** que un proceso "hace X" sin haber leído el código fuente que lo demuestra
+- ❌ **NUNCA concluir** una causa raíz sin evidencia verificable (código + datos)
+- ❌ **NUNCA suponer** el comportamiento de una función/procedure sin leerla
+- ❌ **NUNCA inferir** lógica de negocio por el nombre de una tabla, columna o variable
+- ❌ **NUNCA extrapolar** de un caso anterior sin verificar que aplica al caso actual
+- ❌ **NUNCA decir** "probablemente", "seguramente", "debería" en una conclusión de causa raíz
+
+### Obligaciones absolutas:
+- ✅ **TODA afirmación** sobre comportamiento del sistema debe estar respaldada por código fuente leído en esta sesión
+- ✅ **TODA conclusión** debe citar la línea/sección exacta del código que la sustenta
+- ✅ **TODO dato** usado en el diagnóstico debe provenir de una query ejecutada, no de suposiciones
+- ✅ **Si no se puede verificar** → declarar explícitamente "no verificado, requiere revisión en producción"
+- ✅ **Si hay ambigüedad** → presentar las opciones con evidencia parcial, NO elegir una sin fundamento
+
+### Formato de evidencia en el reporte:
+```
+✅ VERIFICADO: "El SP SIM_PCK_DEUDA.CALCULA_DEUDA filtra por mca_cobrada = 'N'"
+   → Evidencia: SIM_PCK_DEUDA.pkb, línea 342: "AND c.mca_cobrada = 'N'"
+
+⚠️ NO VERIFICADO: "El proceso batch podría ejecutar una actualización posterior"
+   → Razón: No se encontró el programa COBOL asociado en el repo
+   → Acción: Requiere verificación manual
+```
+
+### Regla de oro:
+> **Si no lo leíste en el código fuente o no lo verificaste con una query, NO LO AFIRMES.**
+
+---
+
 ## ⚠️ REGLA FUNDAMENTAL: Leer Código, NO Simular
 
 **NUNCA simular un proceso. SIEMPRE leer el código PL/SQL que lo ejecuta.**
@@ -12,24 +46,46 @@ La verdad del proceso está en los packages Oracle, no en suposiciones del agent
 
 ```
 1. IDENTIFICAR → ¿Qué SP/package ejecuta el proceso del caso?
-2. LEER        → get_source(object_name, "PACKAGE BODY") — leer el código completo
+2. LEER        → Buscar PRIMERO en el repositorio (rama master), LUEGO en Oracle si no existe
 3. SEGUIR      → Trazar el flujo del SP línea por línea (ENTRADA → TRANSFORMACIÓN → SALIDA)
 4. REPLICAR    → Ejecutar las MISMAS queries que hace el SP, con los datos del caso
 5. DIVERGENCIA → Encontrar el punto exacto donde resultado esperado ≠ resultado real
 ```
+
+### 🏆 PRIORIDAD para leer código fuente PL/SQL
+
+**El repositorio `tronador-oracle-db` (rama master) es la fuente de verdad para código PL/SQL.** Oracle `get_source` es el fallback.
+
+| Prioridad | Fuente | Cuándo usar | Ventaja |
+|---|---|---|---|
+| **1° (preferida)** | Repositorio local: `Base Datos/Packages/<NOMBRE>.pkb` | SIEMPRE como primer intento | Sin límite de tamaño, lectura completa, sin consumir MCP Oracle |
+| **2° (fallback)** | MCP `get_source(object_name, "PACKAGE BODY")` | Solo si el archivo NO existe en el repo | Útil para objetos nuevos no commiteados aún |
+
+**Flujo obligatorio:**
+1. Buscar el archivo en el repo: `tronador-oracle-db/Base Datos/Packages/<NOMBRE>.pkb` (o `.pks` para spec)
+2. Si existe → leerlo con `read_file` o `readCode` (sin consumir créditos Oracle)
+3. Si NO existe → usar `get_source` del MCP oracle-readonly como fallback
+4. Para procedures sueltos: `Base Datos/Procedimientos/<NOMBRE>.prc`
+5. Para functions: `Base Datos/Funciones/<NOMBRE>.fnc`
+6. Para triggers: `Base Datos/Triggers/<NOMBRE>.trg`
+
+**¿Por qué?** Los packages grandes (>3000 líneas) a veces se truncan con `get_source` o no caben en contexto. El archivo del repo se puede leer parcialmente con rangos de líneas (`start_line`, `end_line`), buscar con `grep_search`, o leer solo la función específica con `readCode` + selector.
 
 ### Lo que NUNCA debes hacer:
 - ❌ Calcular manualmente lo que un SP ya calcula
 - ❌ Suponer cómo funciona un proceso sin leer el código
 - ❌ Hacer queries exploratorias a tablas random esperando encontrar algo
 - ❌ Inventar lógica de negocio que no está en el código
+- ❌ Ir directo a `get_source` sin verificar primero si el archivo está en el repo
 
 ### Lo que SIEMPRE debes hacer:
+- ✅ Buscar PRIMERO en el repositorio local (rama master) antes de consultar Oracle
 - ✅ Leer el package body COMPLETO antes de hacer queries de datos
 - ✅ Identificar las tablas que el SP consulta/modifica (están en el código)
 - ✅ Ejecutar las mismas condiciones WHERE que usa el SP
 - ✅ Si el SP llama a otro SP → leer ese también (get_dependencies + get_source)
 - ✅ Reportar la línea exacta del código donde ocurre el problema
+- ✅ Usar `grep_search` en el repo para encontrar rápidamente una función dentro de un package grande
 
 ### Ejemplo correcto:
 ```
@@ -155,9 +211,9 @@ Antes de consultar Oracle, clasificar el caso en un módulo y seguir el árbol d
 │   │       ├── SÍ → Verificar A5021600 (movimientos caja)
 │   │       │   └── ¿Hay movimientos que anulan la deuda?
 │   │       │       ├── SÍ → Causa: pago aplicado pero no reflejado en servicio
-│   │       │       └── NO → Verificar SIM_PCK_DEUDA (get_source)
+│   │       │       └── NO → Leer SIM_PCK_DEUDA del repo (Base Datos/Packages/SIM_PCK_DEUDA.pkb)
 │   │       └── NO → ¿El servicio reporta deuda pero no hay facturas pendientes?
-│   │           └── SÍ → Verificar SIM_DEUDA_POLIZA + lógica del SP
+│   │           └── SÍ → Leer SIM_DEUDA_POLIZA del repo + verificar lógica del SP
 │   └── NO → Buscar por documento
 └── NO → Clasificar en otro módulo
 ```
@@ -206,11 +262,12 @@ Al finalizar el diagnóstico, asignar un nivel de confianza:
 
 Si el scoring es Bajo, ejecutar automáticamente:
 
-1. **Leer código fuente** del package/procedure involucrado (`get_source`)
-2. **Verificar dependencias** (`get_dependencies`) para encontrar otros objetos que participan
-3. **Buscar en el repositorio local** archivos `.pkb`, `.prc`, `.fnc` relacionados
-4. **Consultar Engram** por casos similares anteriores
-5. **Re-evaluar** con la nueva información
+1. **Leer código fuente del repo** — buscar en `tronador-oracle-db/Base Datos/Packages/` el `.pkb` del package involucrado (fallback: `get_source`)
+2. **Buscar en COBOL** — si hay un proceso batch relacionado, leer el `.pco` en `tronador-core-cobol/`
+3. **Buscar en Forms** — si hay una pantalla involucrada, leer el `.fmt` en `tronador-forms/FMT/`
+4. **Verificar dependencias** (`get_dependencies`) para encontrar otros objetos que participan
+5. **Consultar Engram** por casos similares anteriores
+6. **Re-evaluar** con la nueva información
 
 Si después de profundizar sigue en Baja → reportar como "requiere investigación adicional" con las hipótesis ordenadas por probabilidad.
 
@@ -311,9 +368,12 @@ Si un diagnóstico termina en confianza Baja → evaluar qué información falta
 
 ## Resumen de Reglas
 
-1. **Engram primero, Oracle después.** Siempre buscar diagnósticos previos antes de consultar la BD.
-2. **Un JOIN vale más que tres queries.** Consolidar consultas siempre que sea posible.
-3. **Seguir el árbol, no explorar.** Clasificar el caso y seguir el flujo del módulo correspondiente.
-4. **Templates sobre queries ad-hoc.** Usar los templates pre-armados, solo ajustar parámetros.
-5. **Profundizar solo si es necesario.** Si la confianza es Alta o Media, no hacer queries adicionales.
-6. **Cada caso mejora el sistema.** Si un diagnóstico requirió exploración, documentar para que el siguiente no la necesite.
+1. **Engram primero.** Siempre buscar diagnósticos previos antes de cualquier otra fuente.
+2. **Código fuente antes que datos.** Leer el código del repo (PL/SQL, COBOL, Forms) ANTES de hacer queries de datos en Oracle.
+3. **Repo primero, `get_source` después.** Buscar packages en `tronador-oracle-db/Base Datos/Packages/` antes de usar el MCP Oracle.
+4. **Los 3 repos son la lógica de negocio.** Oracle DB (PL/SQL) + COBOL (batch) + Forms (pantallas) = flujo completo.
+5. **Un JOIN vale más que tres queries.** Consolidar consultas siempre que sea posible.
+6. **Seguir el árbol, no explorar.** Clasificar el caso y seguir el flujo del módulo correspondiente.
+7. **Templates sobre queries ad-hoc.** Usar los templates pre-armados, solo ajustar parámetros.
+8. **No suponer, no calcular.** Toda afirmación debe estar respaldada por código fuente leído o datos verificados.
+9. **Cada caso mejora el sistema.** Si un diagnóstico requirió exploración, documentar para que el siguiente no la necesite.

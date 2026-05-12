@@ -7,6 +7,14 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 
 ## [No publicado]
 
+### Cambiado
+- Se optimizaron 6 steering files de reglas (tech-stack, libraries, security, code-style, architecture, ai-generated-code) de `inclusion: always` a `inclusion: fileMatch` para reducir consumo de contexto en sesiones de soporte N3
+- Se simplificó steering de Engram para no activarse automáticamente al inicio de cada sesión, solo cuando hay trabajo significativo
+- Se estableció regla de prioridad "repo primero, Oracle después" en `diagnostico-eficiente.md` y `fuentes-codigo-repositorios.md` — leer packages del repositorio local (rama master) antes de usar `get_source` del MCP Oracle, evitando truncamiento por tamaño y ahorrando créditos
+- Se reestructuró Fase 1 de `atencion-incidente-autonomo.md` con flujo obligatorio: Engram → Confluence/Jira → Repo Oracle DB → Repo COBOL → Repo Forms → Oracle (solo datos), eliminando suposiciones previas a la lectura de código fuente
+- Se agregó regla de precisión absoluta "CERO SUPOSICIONES" en `diagnostico-eficiente.md` — toda afirmación debe estar respaldada por código fuente leído o datos verificados, nunca por inferencia
+- Se actualizó scoring de confianza en `atencion-incidente-autonomo.md` para exigir evidencia citada (archivo + línea + query) y sección "No Verificado" obligatoria en el reporte final
+
 ### Agregado
 - Se migró el power corex-n3 a repositorio dedicado (antes vivía en rama de tronador-oracle-db)
 - Se incluyeron 3 sub-agentes: diagnóstico, implementación, retrospectiva

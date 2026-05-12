@@ -77,7 +77,7 @@ Guardar para la sesión:
 
 ---
 
-## FASE 1 — DIAGNÓSTICO (autónomo, guiado por la KB)
+## FASE 1 — DIAGNÓSTICO (autónomo, guiado por código fuente)
 
 ### 1.1 Obtener caso Jira completo
 
@@ -89,16 +89,100 @@ Extraer: summary, descripción, comentarios cronológicos, issues vinculados, es
 
 ### 1.2 Extraer datos clave
 
-Analizar descripción + comentarios para identificar **todo dato que pueda servir para consultar Oracle**:
+Analizar descripción + comentarios para identificar **todo dato que pueda servir para el diagnóstico**:
 - Números de póliza, certificados, endosos
 - Identificación (CC, NIT, cédula)
 - Números de recibo, factura, cuota
 - Códigos de ramo, sección, producto
 - Mensajes de error específicos
 - Nombres de tablas, packages, procedimientos, funciones, triggers
+- Nombres de programas batch (CB/CR) o pantallas (AP/CP/CC/AC)
 - Cualquier referencia a procesos de negocio (emisión, recaudo, siniestro, reaseguro, etc.)
 
-### 1.3 Consultar Oracle — Guiado por la KB, árboles de decisión y templates (Bloque D)
+### 1.3 Buscar documentación relacionada en Confluence y Jira
+
+```
+confluence_search(query="<términos clave del error o proceso>", limit=5, spaces_filter="BDCT")
+jira_search(jql='project = MDSB AND text ~ "<término clave>" ORDER BY created DESC', limit=10)
+```
+
+Anotar claves de casos duplicados o relacionados para vincularlos después.
+
+### 1.4 Leer código fuente — OBLIGATORIO ANTES de consultar datos en Oracle
+
+⚠️ **REGLA CRÍTICA: No hacer queries de datos sin antes leer el código que los procesa.**
+
+El diagnóstico correcto requiere entender QUÉ HACE el código antes de verificar datos. Sin leer el código, cualquier query es exploratoria y puede llevar a conclusiones incorrectas.
+
+**Orden obligatorio de búsqueda en repositorios:**
+
+#### Paso A: Repositorio Oracle DB (tronador-oracle-db) — FUENTE DE VERDAD PL/SQL
+
+Buscar el package/procedure/function/trigger mencionado en el caso:
+
+```
+Ruta: tronador-oracle-db/Base Datos/Packages/<NOMBRE>.pkb  (body)
+Ruta: tronador-oracle-db/Base Datos/Packages/<NOMBRE>.pks  (spec)
+Ruta: tronador-oracle-db/Base Datos/Procedimientos/<NOMBRE>.prc
+Ruta: tronador-oracle-db/Base Datos/Funciones/<NOMBRE>.fnc
+Ruta: tronador-oracle-db/Base Datos/Triggers/<NOMBRE>.trg
+```
+
+**Técnicas de lectura eficiente para packages grandes:**
+- `grep_search` para localizar una función/procedure específica dentro del package
+- `read_file` con `start_line`/`end_line` para leer solo la sección relevante
+- `readCode` con selector `PackageName.procedureName` para ir directo
+
+**Si el archivo NO existe en el repo** → fallback a `get_source` del MCP oracle-readonly.
+
+#### Paso B: Repositorio COBOL (tronador-core-cobol) — Procesos batch
+
+Si el caso menciona un proceso batch, nocturno, o programado, o si el SP Oracle es invocado por un programa batch:
+
+```
+Ruta: tronador-core-cobol/<NOMBRE>.pco
+```
+
+Buscar por convención de nombres:
+- `CB` = Batch (proceso nocturno/programado)
+- `CR` = Batch Report (generación de reportes)
+- Números: `226` = emisión colectivas, `270` = salud, `299` = cartera, `502` = recaudo, `902` = siniestros
+
+**Qué buscar en el COBOL:**
+- Parámetros que envía al SP Oracle (`CALL`, `EXECUTE`)
+- Condiciones previas que filtran datos antes de llamar al SP
+- Manejo de errores y reintentos
+- SQL embebido que complementa la lógica del SP
+
+#### Paso C: Repositorio Forms (tronador-forms) — Pantallas y validaciones UI
+
+Si el caso menciona una pantalla, formulario, o error de interfaz:
+
+```
+Ruta: tronador-forms/FMT/<NOMBRE>.fmt
+```
+
+Buscar por convención de nombres:
+- `AP` = Alta de Póliza, `CP` = Consulta de Póliza, `CC` = Consulta/Cambio
+- `AC` = Alta/Cambio, `AS` = Alta Siniestro, `AR` = Alta Reaseguro
+- Números: `200` = emisión, `270` = salud, `502` = recaudo, `850` = reaseguros
+
+**Qué buscar en Forms:**
+- Triggers de validación (WHEN-VALIDATE-ITEM, PRE-INSERT, POST-QUERY)
+- Llamadas a SPs Oracle desde la pantalla
+- Validaciones de UI que no están en la BD
+- Mensajes de error personalizados
+
+#### Paso D: Dependencias y objetos relacionados
+
+Una vez leído el código principal, identificar dependencias:
+- Si el SP llama a otros SPs → leer esos también (repetir Paso A)
+- Usar `get_dependencies` del MCP Oracle para mapear quién usa/es usado por el objeto
+- Buscar triggers en tablas afectadas: `tronador-oracle-db/Base Datos/Triggers/`
+
+### 1.5 Consultar Oracle — Solo para DATOS, guiado por lo que dice el código
+
+**AHORA SÍ** consultar Oracle, pero SOLO para verificar datos específicos que el código fuente indica que son relevantes.
 
 Usar `oracle-readonly` (dev). Si falla, intentar `oracle-stage`.
 
@@ -122,18 +206,9 @@ Usar `oracle-readonly` (dev). Si falla, intentar `oracle-stage`.
 
 4. **Meta: ≤ 4 llamadas Oracle por caso.** Si se necesitan más, evaluar si se pueden consolidar.
 
-**Fuentes de guía (en orden de prioridad):**
-1. **Engram** (Fase 0.1) — diagnósticos previos del mismo patrón
-2. **La KB cargada en Fase 0.2** — tablas y relaciones por módulo
-3. **Templates SQL del steering `diagnostico-eficiente.md`** — queries pre-armados
-4. **El steering `oracle-consultas.md`** — queries frecuentes adicionales
-5. **El diccionario de datos (`A1000000`)** — solo para tablas no documentadas
+5. **Las queries deben replicar lo que hace el código.** Ejecutar las MISMAS condiciones WHERE que usa el SP/programa. No inventar queries exploratorias.
 
-**Regla de exploración:** Si la KB ya documenta el proceso afectado → usar directamente los templates. Si el proceso NO está en la KB → explorar con `A1000000` y `describe_table`, luego **documentar los hallazgos en la KB al final** (Fase 5).
-
-**Regla de código fuente:** Si se necesita leer código PL/SQL → usar `get_source`. Si se necesita entender dependencias → usar `get_dependencies`. Pero solo si el árbol de decisión lo requiere.
-
-### 1.3b Diagnóstico profundo — Seguir el flujo COMPLETO (OBLIGATORIO)
+### 1.6 Diagnóstico profundo — Seguir el flujo COMPLETO (OBLIGATORIO)
 
 ⚠️ **REGLA CRÍTICA:** No detenerse en los filtros de entrada. Un dato que pasa todos los filtros de selección puede ser transformado, descartado o anulado en pasos posteriores.
 
@@ -160,32 +235,6 @@ Para CUALQUIER proceso Oracle que se esté diagnosticando, trazar el flujo compl
 
 > **Origen:** Lección aprendida MDSB-1031049 — se analizaron 12 filtros de `fnc_sqlprimer` (todos pasaban) pero se omitió `prc_verifica_pagos_factura` que consulta A5021600 y descuenta cobros. El diagnóstico inicial fue incorrecto.
 
-### 1.4 Buscar en el repositorio local y código fuente (si aplica)
-
-Si el caso menciona un servicio, package, procedimiento, programa batch o pantalla:
-
-**Oracle DB** — Buscar en `Base Datos/Packages/`, `Base Datos/Procedimientos/`, etc.
-**COBOL** — Si es un proceso batch (CB/CR), leer el `.pco` en el repo hermano `tronador-core-cobol/`
-**Forms** — Si es una pantalla (AP/CP/CC/AC), leer el `.fmt` en el repo hermano `tronador-forms/FMT/`
-
-Ver steering `fuentes-codigo-repositorios.md` para convenciones de nombres y estrategia de búsqueda.
-
-⚠️ **Regla de precisión:** No diagnosticar solo con la KB. Si el patrón no es exacto, ir al código fuente. Leer el código real antes de afirmar qué hace un proceso.
-
-### 1.5 Buscar documentación relacionada en Confluence
-
-```
-confluence_search(query="<términos clave del error o proceso>", limit=5, spaces_filter="BDCT")
-```
-
-### 1.6 Buscar casos Jira relacionados
-
-```
-jira_search(jql='project = MDSB AND text ~ "<término clave>" ORDER BY created DESC', limit=10)
-```
-
-Anotar claves de casos duplicados o relacionados para vincularlos después.
-
 ### 1.7 Comparar con patrones conocidos y asignar scoring de confianza
 
 Cruzar hallazgos con los patrones cargados en Fase 0. Si hay coincidencia:
@@ -193,24 +242,36 @@ Cruzar hallazgos con los patrones cargados en Fase 0. Si hay coincidencia:
 - Incluir la solución documentada
 - Evaluar si aplica directamente o necesita adaptación
 
-**Scoring de confianza (Bloque D):**
+**🚨 REGLA DE PRECISIÓN ABSOLUTA:**
+
+Toda conclusión del diagnóstico DEBE cumplir:
+- Estar respaldada por código fuente leído (citar archivo y línea/sección)
+- Estar verificada con datos reales (citar query ejecutada y resultado)
+- Si algo no se pudo verificar → declararlo explícitamente como "NO VERIFICADO"
+
+**NUNCA presentar una suposición como conclusión.** Un diagnóstico incorrecto tiene consecuencias graves en producción.
+
+**Scoring de confianza:**
 
 | Nivel | Criterio | Acción |
 |---|---|---|
-| **Alta** | Causa raíz identificada con evidencia en datos + código fuente | Reportar directamente |
-| **Media** | Causa probable basada en patrón conocido, sin verificación completa | Reportar con nota "requiere verificación en prod" |
-| **Baja** | Hipótesis sin evidencia suficiente | Profundizar automáticamente (ver abajo) |
+| **Alta** | Causa raíz identificada con evidencia en código fuente (archivo + línea) + datos verificados (query + resultado) | Reportar con evidencia citada |
+| **Media** | Causa probable con código fuente leído pero sin datos de producción para confirmar | Reportar con nota "requiere verificación en prod" + citar qué falta verificar |
+| **Baja** | Hipótesis sin evidencia suficiente en código ni datos | Profundizar automáticamente (ver abajo) |
+
+**⚠️ NUNCA reportar confianza Alta sin haber leído el código fuente relevante.** Si no se leyó el código, la confianza máxima es Media.
 
 **Si confianza es Baja → profundización automática:**
-1. Leer código fuente del package/procedure involucrado (`get_source`)
+1. Leer más código fuente (funciones internas, dependencias) de los 3 repos
 2. Verificar dependencias (`get_dependencies`)
-3. Buscar en el repositorio local archivos `.pkb`, `.prc`, `.fnc` relacionados
+3. Buscar en los 3 repositorios archivos relacionados
 4. Consultar Engram por casos similares anteriores
 5. Re-evaluar con la nueva información
 
-Si después de profundizar sigue en Baja → reportar como "requiere investigación adicional" con hipótesis ordenadas por probabilidad.
-- Incluir la solución documentada
-- Evaluar si aplica directamente o necesita adaptación
+Si después de profundizar sigue en Baja → reportar como "requiere investigación adicional" con:
+- Hipótesis ordenadas por probabilidad
+- Qué evidencia falta para confirmar cada una
+- Qué archivos/queries se necesitan revisar en producción
 
 ---
 
@@ -346,7 +407,19 @@ Al completar todas las fases, presentar:
 ## Diagnóstico
 - **Problema:** <resumen en 1-2 líneas>
 - **Causa raíz:** <identificada / probable / requiere investigación adicional>
+- **Confianza:** <Alta / Media / Baja>
 - **Patrón conocido:** <sí/no — cuál>
+
+## Evidencia (OBLIGATORIO)
+| Afirmación | Fuente | Referencia |
+|---|---|---|
+| "<lo que hace el código>" | Código fuente | <archivo>.pkb, línea/sección X |
+| "<estado de los datos>" | Query Oracle | SELECT ... WHERE ... → resultado |
+| "<comportamiento del proceso>" | COBOL/Forms | <archivo>.pco/.fmt, sección Y |
+
+## ⚠️ No Verificado (si aplica)
+- <Qué no se pudo confirmar y por qué>
+- <Qué se necesita para verificarlo (query en prod, acceso a logs, etc.)>
 
 ## Datos Oracle
 - <Resumen de hallazgos relevantes por tabla consultada>

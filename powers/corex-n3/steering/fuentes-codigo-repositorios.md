@@ -64,11 +64,26 @@ Consultar cuando:
 - `AR` = Alta Reaseguro
 - Los números corresponden al módulo: `200` = emisión, `270` = salud, `502` = recaudo, `850` = reaseguros, etc.
 
-### Oracle DB (`tronador-oracle-db/Base Datos`)
-Consultar cuando:
+### Oracle DB (`tronador-oracle-db/Base Datos`) — ⭐ FUENTE DE VERDAD para PL/SQL
+Consultar **SIEMPRE PRIMERO** (antes de usar `get_source` del MCP Oracle) cuando:
+- Se necesita leer un **package body** (`.pkb`) o **spec** (`.pks`)
+- Se necesita leer un **procedure** (`.prc`), **function** (`.fnc`), o **trigger** (`.trg`)
 - Se necesita ver el **DDL** de una tabla, trigger, o índice
-- Se necesita ver un **package/procedure** que no está en la BD de dev (fue borrado o renombrado)
 - Se necesita ver el **historial de cambios** (git log) de un objeto
+
+**⚠️ REGLA DE PRIORIDAD:**
+```
+1° Buscar en repo (rama master): Base Datos/Packages/<NOMBRE>.pkb
+2° Solo si NO existe en el repo → usar get_source del MCP oracle-readonly
+```
+
+**Ventajas del repo sobre `get_source`:**
+- Sin límite de tamaño (packages de 5000+ líneas se leen completos)
+- Se puede leer por rangos de líneas (`start_line`, `end_line`)
+- Se puede buscar con `grep_search` una función específica dentro del package
+- Se puede usar `readCode` con selector para ir directo a un procedure
+- No consume créditos del MCP Oracle
+- Refleja el código en producción (rama master = lo desplegado)
 
 ## Estrategia de diagnóstico con múltiples fuentes
 
@@ -80,7 +95,9 @@ Cuando un caso requiere trazar un flujo completo:
    - Si es pantalla → buscar en `tronador-forms/FMT/` el form `.fmt`
    - Si es servicio → buscar en el repo del microservicio
 3. **Identificar los SPs Oracle que llama** — buscar `CALL`, `EXECUTE`, o SQL embebido
-4. **Leer el SP en Oracle** — usar `get_source` del MCP oracle-readonly
+4. **Leer el SP desde el repositorio** — buscar en `tronador-oracle-db/Base Datos/Packages/<NOMBRE>.pkb`
+   - Si no existe en el repo → fallback a `get_source` del MCP oracle-readonly
+   - Para packages grandes: usar `grep_search` para localizar la función específica, luego `read_file` con rango de líneas
 5. **Trazar las tablas afectadas** — usar `get_dependencies` y `describe_table`
 6. **Verificar datos** — usar `query` para validar el estado actual
 
@@ -89,10 +106,11 @@ Cuando un caso requiere trazar un flujo completo:
 ⚠️ **OBLIGATORIO para mejorar precisión:**
 
 1. **No diagnosticar solo con la KB.** Si la KB no tiene el patrón exacto, ir al código fuente.
-2. **Leer el código, no asumir.** Antes de decir "el SP hace X", leer el código con `get_source` o leyendo el archivo `.pco`/`.fmt`.
-3. **Trazar el flujo completo.** Un dato puede pasar 5 filtros y fallar en el 6to. Leer TODAS las funciones intermedias.
-4. **Verificar con datos reales.** Después de leer el código, ejecutar queries para confirmar la hipótesis.
-5. **Si la evidencia contradice el análisis, la evidencia gana.** Buscar qué se está omitiendo.
+2. **Repo primero, Oracle después.** Antes de usar `get_source`, verificar si el archivo `.pkb`/`.pks`/`.prc` existe en el repositorio.
+3. **Leer el código, no asumir.** Antes de decir "el SP hace X", leer el código del repo o con `get_source`.
+4. **Trazar el flujo completo.** Un dato puede pasar 5 filtros y fallar en el 6to. Leer TODAS las funciones intermedias.
+5. **Verificar con datos reales.** Después de leer el código, ejecutar queries para confirmar la hipótesis.
+6. **Si la evidencia contradice el análisis, la evidencia gana.** Buscar qué se está omitiendo.
 
 ## Cómo buscar en los repositorios
 
