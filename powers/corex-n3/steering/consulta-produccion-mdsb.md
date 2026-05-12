@@ -38,36 +38,69 @@ SET UNDERLINE OFF
 
 **Nombre del archivo:** `ConsultaBot (<uuid>).sql` — generar UUID con `uuidgen | tr '[:upper:]' '[:lower:]'`
 
-### Paso 2 — Subir archivo como temporary attachment
+### Paso 2 — Subir archivo y crear request (script autocontenido)
 
-```bash
-curl -s -X POST \
-  'https://jirasegurosbolivar.atlassian.net/rest/servicedeskapi/servicedesk/2/attachTemporaryFile' \
-  -H 'X-Atlassian-Token: no-check' \
-  -H 'X-ExperimentalApi: opt-in' \
-  -u '<EMAIL>:<API_TOKEN>' \
-  -F "file=@<RUTA_AL_ARCHIVO_SQL>"
-```
+⚠️ **Las credenciales NO están en variables de entorno del shell.** Están en `~/.kiro/settings/.env`. El script debe leerlas de ahí.
 
-Retorna: `{"temporaryAttachments": [{"temporaryAttachmentId": "<ID>", "fileName": "..."}]}`
-
-Guardar el `temporaryAttachmentId` para el paso 3.
-
-### Paso 3 — Crear el request con formulario + adjunto (atómico)
-
-Usar la API de Service Desk con el campo `form.answers` para llenar el formulario ProForma:
+Ejecutar este script Python que hace todo en un solo paso (upload + create request):
 
 ```python
-import json, urllib.request, base64, ssl
+#!/usr/bin/env python3
+"""Crea un request MDSB con consulta SQL para el bot AIOps."""
+import json, urllib.request, base64, ssl, os, re
 
-url = "https://jirasegurosbolivar.atlassian.net/rest/servicedeskapi/request"
-creds = base64.b64encode(b"<EMAIL>:<API_TOKEN>").decode()
+# --- Leer credenciales de ~/.kiro/settings/.env ---
+env_path = os.path.expanduser("~/.kiro/settings/.env")
+env_vars = {}
+with open(env_path) as f:
+    for line in f:
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, val = line.split("=", 1)
+            env_vars[key.strip()] = val.strip()
+
+EMAIL = env_vars["JIRA_USERNAME"]
+TOKEN = env_vars["JIRA_API_TOKEN"]
+CREDS = base64.b64encode(f"{EMAIL}:{TOKEN}".encode()).decode()
+BASE_URL = "https://jirasegurosbolivar.atlassian.net"
+CTX = ssl.create_default_context()
+
+# --- Paso A: Subir archivo temporal ---
+SQL_FILE = "<RUTA_AL_ARCHIVO_SQL>"  # Reemplazar con la ruta real
+
+boundary = "----FormBoundary7MA4YWxkTrZu0gW"
+filename = os.path.basename(SQL_FILE)
+with open(SQL_FILE, "rb") as f:
+    file_data = f.read()
+
+body = (
+    f"--{boundary}\r\n"
+    f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
+    f"Content-Type: application/sql\r\n\r\n"
+).encode() + file_data + f"\r\n--{boundary}--\r\n".encode()
+
+req = urllib.request.Request(
+    f"{BASE_URL}/rest/servicedeskapi/servicedesk/2/attachTemporaryFile",
+    data=body, method="POST"
+)
+req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+req.add_header("Authorization", f"Basic {CREDS}")
+req.add_header("X-Atlassian-Token", "no-check")
+req.add_header("X-ExperimentalApi", "opt-in")
+
+with urllib.request.urlopen(req, context=CTX) as resp:
+    attach_result = json.loads(resp.read().decode())
+    temp_id = attach_result["temporaryAttachments"][0]["temporaryAttachmentId"]
+    print(f"Attachment uploaded: {temp_id}")
+
+# --- Paso B: Crear request con formulario ---
+JIRA_ASOCIADO = "<URL_JIRA_ASOCIADO>"  # Reemplazar con URL del caso de referencia
 
 payload = {
     "serviceDeskId": "2",
     "requestTypeId": "83",
     "requestFieldValues": {
-        "attachment": ["<TEMPORARY_ATTACHMENT_ID>"]
+        "attachment": [temp_id]
     },
     "form": {
         "answers": {
@@ -75,12 +108,12 @@ payload = {
             "112": {"choices": ["31708"]},
             "2": {"text": "3214325244"},
             "3": {"text": "1072660049"},
-            "4": {"text": "michael.espinosa@segurosbolivar.com"},
+            "4": {"text": EMAIL},
             "13": {"choices": ["34662"]},
             "6": {"choices": ["26002"]},
             "63": {"choices": ["36606"]},
             "32": {"text": "OPS$PUMA"},
-            "11": {"text": "https://jirasegurosbolivar.atlassian.net/browse/MDSB-1034590"},
+            "11": {"text": JIRA_ASOCIADO},
             "73": {"choices": ["50268"]},
             "12": {"text": "Consulta"}
         }
@@ -88,18 +121,28 @@ payload = {
 }
 
 data = json.dumps(payload).encode("utf-8")
-req = urllib.request.Request(url, data=data, method="POST")
+req = urllib.request.Request(f"{BASE_URL}/rest/servicedeskapi/request", data=data, method="POST")
 req.add_header("Content-Type", "application/json")
-req.add_header("Authorization", f"Basic {creds}")
+req.add_header("Authorization", f"Basic {CREDS}")
 req.add_header("X-ExperimentalApi", "opt-in")
 
-ctx = ssl.create_default_context()
-with urllib.request.urlopen(req, context=ctx) as resp:
+with urllib.request.urlopen(req, context=CTX) as resp:
     result = json.loads(resp.read().decode())
-    print(result["issueKey"])  # MDSB-XXXXXXX
+    issue_key = result["issueKey"]
+    print(f"Request created: {issue_key}")
+    print(f"URL: {BASE_URL}/browse/{issue_key}")
 ```
 
-### Paso 4 — Limpiar y reportar
+**Instrucciones para el agente:**
+1. Crear el archivo `.sql` (Paso 1)
+2. Crear un script Python temporal (ej: `/tmp/mdsb_request.py`) con el código de arriba
+3. Reemplazar `<RUTA_AL_ARCHIVO_SQL>` con la ruta real del archivo SQL creado
+4. Reemplazar `<URL_JIRA_ASOCIADO>` con la URL del caso MDSB o HU de referencia
+5. Ejecutar: `python3 /tmp/mdsb_request.py`
+6. Capturar la clave del issue creado del output
+7. Eliminar ambos archivos temporales
+
+### Paso 3 — Limpiar y reportar
 
 1. Eliminar el archivo `.sql` temporal del workspace
 2. Informar al usuario:
@@ -108,7 +151,7 @@ with urllib.request.urlopen(req, context=ctx) as resp:
    - La consulta que se envió
    - El bot AIOps lo procesará en ~1-2 minutos
 
-### Paso 5 — Leer resultado (cuando el usuario confirme)
+### Paso 4 — Leer resultado (cuando el usuario confirme)
 
 Cuando el usuario diga "ya está", "lee el resultado", "qué salió", etc.:
 
@@ -136,9 +179,17 @@ Cuando el usuario diga "ya está", "lee el resultado", "qué salió", etc.:
 
 ## Credenciales
 
-Las credenciales se leen de las variables de entorno del power:
-- Email: `JIRA_USERNAME`
-- Token: `JIRA_API_TOKEN`
+⚠️ **Las credenciales NO están en variables de entorno del shell.** Están en el archivo:
+
+```
+~/.kiro/settings/.env
+```
+
+Variables disponibles:
+- `JIRA_USERNAME` — email corporativo
+- `JIRA_API_TOKEN` — token de Atlassian
+
+**El script Python las lee directamente de ese archivo.** No intentar usar `$JIRA_USERNAME` en bash ni `os.environ["JIRA_USERNAME"]` — no funcionará. Siempre leer el archivo `.env` con `open()`.
 
 ## Notas importantes
 

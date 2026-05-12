@@ -15,6 +15,9 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 - Se agregó regla de precisión absoluta "CERO SUPOSICIONES" en `diagnostico-eficiente.md` — toda afirmación debe estar respaldada por código fuente leído o datos verificados, nunca por inferencia
 - Se actualizó scoring de confianza en `atencion-incidente-autonomo.md` para exigir evidencia citada (archivo + línea + query) y sección "No Verificado" obligatoria en el reporte final
 
+### Corregido
+- Se corrigió `consulta-produccion-mdsb.md` — las credenciales se leen de `~/.kiro/settings/.env` (no de variables de entorno del shell que no existen). Script Python autocontenido que hace upload + create request en un solo paso
+
 ### Agregado
 - Se migró el power corex-n3 a repositorio dedicado (antes vivía en rama de tronador-oracle-db)
 - Se incluyeron 3 sub-agentes: diagnóstico, implementación, retrospectiva
