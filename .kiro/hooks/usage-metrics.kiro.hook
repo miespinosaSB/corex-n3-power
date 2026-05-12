@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "Usage Metrics Logger",
+  "description": "Registra el uso de herramientas MCP (Oracle, Jira, Confluence) para métricas del equipo. Escribe en .kiro/metrics/usage.log",
+  "version": "1.0.0",
+  "when": {
+    "type": "postToolUse",
+    "toolTypes": [".*query.*", ".*jira.*", ".*confluence.*", ".*get_source.*", ".*search_objects.*", ".*describe_table.*", ".*get_dependencies.*"]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "mkdir -p .kiro/metrics && echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ)|${KIRO_TOOL_NAME:-unknown}|${KIRO_TOOL_SERVER:-unknown}\" >> .kiro/metrics/usage.log"
+  }
+}

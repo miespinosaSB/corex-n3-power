@@ -1,0 +1,37 @@
+{
+  "generated_at": "2026-05-12T00:00:00Z",
+  "cobol": {
+    "available": false,
+    "programs": [],
+    "count": 0,
+    "note": "Ejecutar 'bash .kiro/scripts/generate-source-index.sh' después de clonar tronador-core-cobol"
+  },
+  "forms": {
+    "available": false,
+    "screens": [],
+    "count": 0,
+    "note": "Ejecutar 'bash .kiro/scripts/generate-source-index.sh' después de clonar tronador-forms"
+  },
+  "module_map": {
+    "200": "Emisión Individual",
+    "226": "Emisión Colectivas",
+    "270": "Salud",
+    "299": "Cartera/Cancelaciones",
+    "300": "Siniestros",
+    "502": "Recaudo",
+    "503": "Tesorería",
+    "850": "Reaseguros",
+    "900": "Contabilidad",
+    "902": "Siniestros (reportes)"
+  },
+  "type_map": {
+    "CB": "Batch (proceso nocturno/programado)",
+    "CR": "Batch Report (generación de reportes)",
+    "AP": "Alta de Póliza (emisión)",
+    "CP": "Consulta de Póliza",
+    "CC": "Consulta/Cambio",
+    "AC": "Alta/Cambio",
+    "AS": "Alta Siniestro",
+    "AR": "Alta Reaseguro"
+  }
+}

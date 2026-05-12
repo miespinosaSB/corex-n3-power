@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Validate WorkflowFile.json",
+  "description": "Verifica que WorkflowFile.json no contenga placeholders sin reemplazar y que la estructura sea consistente entre ambientes.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/WorkflowFile.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "El archivo WorkflowFile.json fue modificado. Verifica lo siguiente:\n\n1. NO deben quedar placeholders sin reemplazar: {nombre-ms}, {context-path}, {proyecto}, {api-gateway-id-*}, {nlb-*}, {vpc-link-*}, {account-id-*}, {sg-*}, {subnets-*}\n2. El campo 'name' en apps.dev, apps.stage y apps.prod debe ser el mismo nombre de microservicio.\n3. El campo 'app' debe coincidir con rootProject.name del settings.gradle + '-0.0.1-SNAPSHOT.jar'.\n4. El campo 'path' debe apuntar a la carpeta real del microservicio dentro del monorepo.\n5. Las claves del microservicio deben ser consistentes en todas las secciones (apigateway, swaggerParameters, dev, stage, prod).\n6. Los paths de environments deben seguir el patrón /{proyecto}/{env}/variable-name.\n\nSi encuentras inconsistencias o placeholders, corrígelos."
+  }
+}

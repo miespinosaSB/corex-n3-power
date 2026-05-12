@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "README Update Reminder",
+  "description": "Al crear archivos Java nuevos en un microservicio, recuerda verificar y actualizar la documentación README del módulo.",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": [
+      "**/*.java"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Se creó un nuevo archivo Java. Antes de continuar, verifica la documentación:\n\n1. Si se creó un nuevo endpoint/operación (Controller), ¿existe un README.md en la carpeta del módulo con descripción, endpoint, request/response de ejemplo y procedimiento Oracle invocado?\n2. Si se creó un nuevo módulo, ¿está listado en el README.md principal del microservicio?\n3. Si se modificó la firma de un endpoint existente, ¿se actualizó el README del módulo?\n\nSi falta documentación, créala o actualízala siguiendo las convenciones del proyecto."
+  }
+}

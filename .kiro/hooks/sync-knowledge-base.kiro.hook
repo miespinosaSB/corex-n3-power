@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Sync Knowledge Base",
+  "description": "Al finalizar una ejecución del agente, evalúa si se generó conocimiento reutilizable (diagnóstico resuelto, patrón descubierto, query útil) y propone persistirlo en Engram y/o Confluence.",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Revisa si en esta sesión se generó conocimiento reutilizable (diagnóstico de incidente, patrón Oracle descubierto, query útil, decisión técnica). Si lo hay: 1) Persiste un resumen estructurado en Engram con categoría y metadata. 2) Si es un diagnóstico completo o patrón importante, pregunta al usuario si quiere que se cree/actualice una página en Confluence del espacio Corex. No hagas nada si la sesión fue solo una consulta simple sin nuevo conocimiento."
+  }
+}

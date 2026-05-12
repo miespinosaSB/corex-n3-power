@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "COBOL/Forms Source Lookup",
+  "description": "Cuando el agente lee un caso Jira (postToolUse en jira_get_issue), analiza si menciona programas COBOL (CB/CR) o Forms (AP/CP/CC/AC/AS/AR) y sugiere leer el código fuente del repositorio correspondiente.",
+  "version": "1.0.0",
+  "when": {
+    "type": "postToolUse",
+    "toolTypes": [".*jira_get_issue.*"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Revisa el resultado del caso Jira que acabas de leer. Si la descripción o comentarios mencionan programas COBOL (nombres que empiezan con CB o CR seguidos de números, ej: CB226030, CR902038) o pantallas Forms (nombres que empiezan con AP, CP, CC, AC, AS, AR seguidos de números, ej: CP200030, AP200010), entonces: 1) Identifica los programas/forms mencionados. 2) Intenta leer su código fuente desde los repos hermanos (../tronador-core-cobol/ para .pco, ../tronador-forms/FMT/ para .fmt). 3) Extrae información relevante para el diagnóstico (qué SPs llama, qué validaciones hace, qué tablas toca). Si NO se mencionan programas COBOL ni Forms, no hagas nada adicional."
+  }
+}
