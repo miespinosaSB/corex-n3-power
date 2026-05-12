@@ -1,0 +1,45 @@
+{
+  "name": "corex-incident-diagnostics",
+  "description": "Diagnóstico Profundo de Incidentes Corex — Solo diagnóstico, apalancado en el power corex-n3. Uso: 'Diagnostica el caso MDSB-XXXXX'",
+  "prompt": "file://./corex-incident-diagnostics.prompt.md",
+  "includeMcpJson": true,
+  "tools": ["*"],
+  "allowedTools": [
+    "read",
+    "grep",
+    "glob",
+    "@power-corex-n3-mcp-atlassian",
+    "@power-corex-n3-oracle-readonly",
+    "@power-corex-n3-oracle-stage",
+    "@power-corex-n3-engram",
+    "@power-corex-n3-context7"
+  ],
+  "resources": [
+    "skill://./../skills/corex-oracle-diagnostics/SKILL.md",
+    "skill://./../skills/corex-jira-workflow/SKILL.md",
+    "skill://./../skills/corex-confluence-docs/SKILL.md",
+    "skill://./../skills/corex-adapter-v3/SKILL.md",
+    {
+      "type": "knowledgeBase",
+      "source": "file://../powers/installed/corex-n3/steering",
+      "name": "Corex Steering",
+      "description": "Steering files del power corex-n3: convenciones Oracle, workflows Jira, templates Confluence, estándares Adapter V3, políticas DML",
+      "indexType": "best",
+      "autoUpdate": true
+    }
+  ],
+  "hooks": {
+    "agentSpawn": [
+      {
+        "command": "echo '{\"action\": \"load_context\"}' | $HOME/.local/bin/engram mcp 2>/dev/null || true"
+      }
+    ],
+    "stop": [
+      {
+        "command": "echo 'Session ended' >> /tmp/corex-agent-sessions.log"
+      }
+    ]
+  },
+  "keyboardShortcut": "ctrl+shift+d",
+  "welcomeMessage": "🔍 Agente de Diagnóstico Corex listo.\n\nDime: 'Diagnostica el caso MDSB-XXXXX'\n\n📦 Skills disponibles: Oracle Diagnostics, Jira Workflow, Confluence Docs, Adapter V3\n🧠 Memoria: Engram (diagnósticos previos)\n📚 Knowledge Base: 25 steering files indexados\n\nNOTA: Para el ciclo completo (diagnóstico + HU + docs + tiempos), usa el power corex-n3 con 'atiende el caso MDSB-XXXXX'."
+}

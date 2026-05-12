@@ -1,0 +1,60 @@
+{
+  "mcpServers": {
+    "mcp-atlassian": {
+      "command": "sh",
+      "args": ["-c", "set -a; [ -f \"$HOME/.kiro/settings/.env\" ] && . \"$HOME/.kiro/settings/.env\"; set +a; exec uvx mcp-atlassian"],
+      "env": {
+        "UV_NATIVE_TLS": "true",
+        "JIRA_URL": "https://jirasegurosbolivar.atlassian.net",
+        "CONFLUENCE_URL": "https://jirasegurosbolivar.atlassian.net/wiki"
+      },
+      "autoApprove": [
+        "jira_search", "confluence_search", "jira_get_issue", "jira_get_issue_dates",
+        "jira_create_issue", "jira_update_issue", "jira_add_comment", "jira_add_worklog",
+        "jira_create_issue_link", "jira_create_remote_issue_link", "jira_get_transitions",
+        "jira_transition_issue", "jira_get_worklog", "jira_search_fields", "jira_get_field_options",
+        "jira_download_attachments", "jira_get_issue_images", "confluence_get_page",
+        "confluence_create_page", "confluence_update_page", "confluence_get_page_children",
+        "jira_remove_issue_link", "jira_get_agile_boards", "jira_get_board_issues",
+        "jira_get_service_desk_for_project", "jira_get_issue_proforma_forms",
+        "jira_get_proforma_form_details", "jira_update_proforma_form_answers"
+      ]
+    },
+    "oracle-readonly": {
+      "command": "sh",
+      "args": ["-c", "set -a; [ -f \"$HOME/.kiro/settings/.env\" ] && . \"$HOME/.kiro/settings/.env\"; set +a; exec uv run \"$HOME/.kiro/powers/installed/corex-n3/server.py\""],
+      "env": {
+        "UV_NATIVE_TLS": "true",
+        "ORACLE_HOST": "10.1.2.76",
+        "ORACLE_PORT": "1521",
+        "ORACLE_SID": "tron"
+      },
+      "autoApprove": ["query", "list_tables", "describe_table", "list_schemas", "get_source", "search_objects", "get_dependencies"]
+    },
+    "oracle-stage": {
+      "command": "sh",
+      "args": ["-c", "set -a; [ -f \"$HOME/.kiro/settings/.env\" ] && . \"$HOME/.kiro/settings/.env\"; set +a; exec uv run \"$HOME/.kiro/powers/installed/corex-n3/server.py\""],
+      "env": {
+        "UV_NATIVE_TLS": "true",
+        "ORACLE_HOST": "10.7.2.14",
+        "ORACLE_PORT": "1521",
+        "ORACLE_SID": "tron",
+        "ORACLE_USER": "consulta_puma",
+        "ORACLE_PASSWORD": "P4m4C0ns4lt4"
+      },
+      "autoApprove": ["query", "list_tables", "describe_table", "list_schemas", "get_source", "search_objects", "get_dependencies"]
+    },
+    "engram": {
+      "command": "sh",
+      "args": ["-c", "exec \"$HOME/.local/bin/engram\" mcp"],
+      "env": {},
+      "autoApprove": ["mem_save", "mem_search", "mem_context", "mem_session_start", "mem_session_end", "mem_session_summary", "mem_timeline", "mem_stats", "mem_get_observation", "mem_update", "mem_delete", "mem_judge", "mem_compare", "mem_suggest_topic_key", "mem_save_prompt", "mem_capture_passive", "mem_current_project"]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "env": {},
+      "autoApprove": ["resolve-library-id", "get-library-docs"]
+    }
+  }
+}
