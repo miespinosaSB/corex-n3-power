@@ -4,6 +4,51 @@ inclusion: auto
 
 # Diagnóstico Eficiente — Menos Créditos, Mejor Efectividad
 
+## ⚠️ REGLA FUNDAMENTAL: Leer Código, NO Simular
+
+**NUNCA simular un proceso. SIEMPRE leer el código PL/SQL que lo ejecuta.**
+
+La verdad del proceso está en los packages Oracle, no en suposiciones del agente. El diagnóstico correcto sigue este flujo:
+
+```
+1. IDENTIFICAR → ¿Qué SP/package ejecuta el proceso del caso?
+2. LEER        → get_source(object_name, "PACKAGE BODY") — leer el código completo
+3. SEGUIR      → Trazar el flujo del SP línea por línea (ENTRADA → TRANSFORMACIÓN → SALIDA)
+4. REPLICAR    → Ejecutar las MISMAS queries que hace el SP, con los datos del caso
+5. DIVERGENCIA → Encontrar el punto exacto donde resultado esperado ≠ resultado real
+```
+
+### Lo que NUNCA debes hacer:
+- ❌ Calcular manualmente lo que un SP ya calcula
+- ❌ Suponer cómo funciona un proceso sin leer el código
+- ❌ Hacer queries exploratorias a tablas random esperando encontrar algo
+- ❌ Inventar lógica de negocio que no está en el código
+
+### Lo que SIEMPRE debes hacer:
+- ✅ Leer el package body COMPLETO antes de hacer queries de datos
+- ✅ Identificar las tablas que el SP consulta/modifica (están en el código)
+- ✅ Ejecutar las mismas condiciones WHERE que usa el SP
+- ✅ Si el SP llama a otro SP → leer ese también (get_dependencies + get_source)
+- ✅ Reportar la línea exacta del código donde ocurre el problema
+
+### Ejemplo correcto:
+```
+Caso: "La deuda no se calcula correctamente para la póliza 123456"
+
+1. IDENTIFICAR: El cálculo de deuda lo hace SIM_PCK_DEUDA.CALCULA_DEUDA
+2. LEER: get_source("SIM_PCK_DEUDA", "PACKAGE BODY")
+3. SEGUIR: El SP hace:
+   - Busca facturas en A2000163 WHERE num_secu_pol = X AND tipo_reg = 'T'
+   - Busca cuotas en A2990700 WHERE num_factura = Y AND mca_cobrada = 'N'
+   - Suma imp_prima + imp_imptos de cuotas no cobradas
+4. REPLICAR: Ejecuto las MISMAS queries con num_pol1 = '123456'
+5. DIVERGENCIA: El SP filtra por mca_cobrada = 'N' pero la cuota 3 tiene
+   mca_cobrada = 'S' con fecha posterior al vencimiento → el pago se aplicó
+   tarde y el servicio no lo detecta porque cachea el resultado
+```
+
+---
+
 ## Principio
 
 Cada llamada MCP consume créditos. El diagnóstico más eficiente es el que resuelve con la menor cantidad de llamadas posibles, sin sacrificar precisión. Este steering define las estrategias para lograrlo.
