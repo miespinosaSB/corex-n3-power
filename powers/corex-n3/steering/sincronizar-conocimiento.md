@@ -1,5 +1,5 @@
 ---
-inclusion: manual
+inclusion: auto
 ---
 
 # Sincronizar Conocimiento

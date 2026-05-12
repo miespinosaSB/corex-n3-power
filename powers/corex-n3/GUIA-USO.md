@@ -4,13 +4,15 @@ Guía práctica para el día a día con el power y sus agentes.
 
 ## Tu primer día
 
-Después de instalar (`install.sh` + Install Power + reiniciar Kiro):
+1. **Clona** el repo: `git clone git@github.com:miespinosaSB/corex-n3-power.git`
+2. **Instala**: `bash powers/corex-n3/install.sh`
+3. **En Kiro**: Command Palette → "Install Power from local directory" → `powers/corex-n3/`
+4. **Reinicia** Kiro
+5. **Importa conocimiento**: Di "actualiza conocimiento" en el chat
 
-1. **Verifica** que los 5 servidores MCP estén conectados (panel Powers → corex-n3)
-2. **Prueba** con: "Diagnostica el caso MDSB-XXXXX" (usa un caso reciente)
-3. **Importa** conocimiento del equipo: `bash .kiro/scripts/engram-sync.sh import`
+Verifica que los 5 servidores MCP estén conectados (panel Powers → corex-n3).
 
-## Flujos de trabajo diarios
+## Comandos del día a día
 
 ### Atender un incidente (ciclo completo)
 
@@ -26,15 +28,15 @@ El agente ejecuta automáticamente:
 5. Documenta en Confluence
 6. Crea HU en Jira + vincula todo
 7. Registra tiempos
-8. Guarda el diagnóstico en Engram para el equipo
+8. Guarda el diagnóstico en Engram
 
-### Solo diagnosticar (sin documentar)
+### Solo diagnosticar
 
 ```
 Tú: "Diagnostica el caso MDSB-123456"
 ```
 
-O usa el shortcut `Ctrl+Shift+D` para cambiar al agente de diagnóstico.
+O usa `Ctrl+Shift+D` para cambiar al agente de diagnóstico.
 
 ### Implementar un fix
 
@@ -42,12 +44,7 @@ O usa el shortcut `Ctrl+Shift+D` para cambiar al agente de diagnóstico.
 Tú: "Implementa el fix para GD986-1234"
 ```
 
-El agente:
-1. Lee la HU y el diagnóstico
-2. Crea rama desde master
-3. Hace cambios PUNTUALES (nunca reemplaza archivos completos)
-4. Verifica colisiones con otros devs
-5. Genera commit y descripción de PR
+Crea rama, hace cambios puntuales, verifica colisiones, genera commit y PR.
 
 ### Crear una Historia de Usuario
 
@@ -55,7 +52,7 @@ El agente:
 Tú: "Crea una HU para corregir el cálculo de prima en renovación"
 ```
 
-El agente te pregunta proyecto/epic, redacta con estructura BDD, y te muestra para aprobación antes de crear en Jira.
+Estructura BDD con escenarios Dado-Cuando-Entonces. Te muestra para aprobación antes de crear.
 
 ### Consultar producción
 
@@ -63,7 +60,20 @@ El agente te pregunta proyecto/epic, redacta con estructura BDD, y te muestra pa
 Tú: "Consulta en prod: SELECT * FROM OPS$PUMA.A2000030 WHERE num_poliza = '123456'"
 ```
 
-El agente genera el MDSB con el SQL formateado para el bot AIOps.
+Genera el MDSB con SQL formateado para el bot AIOps.
+
+### Actualizar conocimiento
+
+```
+Tú: "Actualiza conocimiento"
+```
+
+El agente:
+1. Exporta tus memorias de Engram
+2. Hace commit y push al repo
+3. Propone actualizar Confluence si hay patrones nuevos
+
+También puedes usar los **botones** en el panel de hooks: "Exportar Engram" / "Importar Engram".
 
 ### Retrospectiva
 
@@ -75,124 +85,91 @@ Analiza los últimos 30 días y propone mejoras a la KB y al power.
 
 ## Skills — Cómo funcionan
 
-Las skills se activan automáticamente cuando tu request coincide con su dominio. No necesitas hacer nada especial:
+Se activan automáticamente cuando tu request coincide:
 
-- Mencionas "póliza", "factura", "Oracle" → se activa `corex-oracle-diagnostics`
-- Mencionas "HU", "tiempo", "backlog" → se activa `corex-jira-workflow`
-- Mencionas "documenta", "Confluence" → se activa `corex-confluence-docs`
-- Mencionas "microservicio", "endpoint" → se activa `corex-adapter-v3`
+- Mencionas "póliza", "factura", "Oracle" → `corex-oracle-diagnostics`
+- Mencionas "HU", "tiempo", "backlog" → `corex-jira-workflow`
+- Mencionas "documenta", "Confluence" → `corex-confluence-docs`
+- Mencionas "microservicio", "endpoint" → `corex-adapter-v3`
 
-También puedes invocarlas manualmente con `/` en el chat.
+También puedes invocarlas con `/` en el chat.
+
+## Hooks — Protecciones automáticas
+
+Trabajan en segundo plano:
+
+| Situación | Qué pasa |
+|---|---|
+| Intentas ejecutar DELETE/UPDATE | Bloquea y avisa |
+| Query sin ROWNUM | Agrega ROWNUM <= 50 |
+| Diagnóstico nuevo | Busca en Engram primero (ahorra créditos) |
+| Caso menciona COBOL/Forms | Busca en el índice de fuentes |
+| Sesión termina | Registra métricas |
 
 ## Engram — Memoria del equipo
 
-### Qué se guarda automáticamente
+### Se guarda automáticamente
 
-- Diagnósticos resueltos (causa raíz + solución)
+- Diagnósticos resueltos
 - Patrones Oracle descubiertos
 - Decisiones técnicas
 - Queries útiles
 
-### Compartir conocimiento
+### Compartir con el equipo
 
+```
+Tú: "Actualiza conocimiento"
+```
+
+O manualmente:
 ```bash
-# Después de resolver algo importante
 bash .kiro/scripts/engram-sync.sh export
 git add .kiro/shared-knowledge/
-git commit -m "docs: sync engram knowledge"
+git commit -m "docs: sync engram"
 git push
+```
 
-# Al inicio del día (importar lo nuevo)
+### Recibir conocimiento de compañeros
+
+```bash
 git pull
 bash .kiro/scripts/engram-sync.sh import
 ```
 
-### Buscar en la memoria
+O usa el botón "Importar Engram" en hooks.
 
-```
-Tú: "¿Ya hemos visto un caso de factura no generada en ramo 201?"
-```
+## Context7 — Docs actualizadas
 
-El agente busca automáticamente en Engram antes de consultar Oracle.
+Cuando generas microservicios, el agente consulta automáticamente documentación actualizada de Spring Boot, MapStruct, JUnit, etc. No necesitas hacer nada.
 
-## Hooks — Protecciones automáticas
-
-No necesitas hacer nada — los hooks trabajan en segundo plano:
-
-| Situación | Qué pasa |
-|---|---|
-| Intentas ejecutar un DELETE/UPDATE | Hook bloquea y te avisa |
-| Query sin ROWNUM | Hook agrega ROWNUM <= 50 automáticamente |
-| Diagnóstico nuevo | Hook busca en Engram primero (ahorra créditos) |
-| Caso menciona COBOL/Forms | Hook busca en el índice de fuentes |
-| Sesión termina | Hook registra métricas de uso |
-
-## Métricas — Visibilidad del equipo
+## Métricas
 
 ```bash
-# ¿Cuántos diagnósticos hicimos esta semana?
 bash .kiro/scripts/metrics-report.sh --period week
-
-# ¿Qué herramientas usamos más?
 bash .kiro/scripts/metrics-report.sh --period month
 ```
 
-## Context7 — Documentación actualizada
+## Tips de eficiencia
 
-Cuando generas microservicios o trabajas con Spring Boot, el agente consulta automáticamente la documentación más reciente. No necesitas hacer nada — el steering `context7-microservices.md` lo activa cuando detecta que estás en ese contexto.
-
-## Tips para ser más eficiente
-
-1. **Sé específico**: "Diagnostica MDSB-123456" es mejor que "hay un error"
+1. **Sé específico**: "Diagnostica MDSB-123456" > "hay un error"
 2. **Usa el ciclo completo**: "Atiende el caso" hace todo de una vez
-3. **Confía en Engram**: Si ya resolvimos algo similar, el agente lo encuentra
-4. **Exporta al final del día**: `engram-sync.sh export` para que el equipo se beneficie
-5. **Pide retrospectiva mensual**: Mantiene la KB actualizada y el power mejorando
-
-## Estructura de archivos (para referencia)
-
-```
-~/.kiro/
-├── settings/
-│   ├── mcp.json          # Config MCP (powers section)
-│   └── .env              # Credenciales (JIRA, Oracle)
-├── agents/               # Sub-agentes globales
-├── skills/               # Skills globales (4)
-├── steering/             # Steering globales (Engram, Context7, etc.)
-├── powers/installed/corex-n3/
-│   ├── server.py         # Servidor Oracle MCP
-│   ├── mcp.json          # Referencia (Kiro usa settings/mcp.json)
-│   ├── POWER.md          # Documentación del power
-│   └── steering/         # 26 steering files
-└── .local/bin/
-    └── engram            # Binario de memoria persistente
-
-~/.engram/
-└── engram.db             # Base de datos de memoria (SQLite)
-
-<proyecto>/.kiro/
-├── hooks/                # 17 hooks de protección
-├── scripts/              # Sync, métricas, índice
-├── shared-knowledge/     # Memorias exportadas (Git)
-└── metrics/              # Datos de uso
-```
+3. **Confía en Engram**: Si ya resolvimos algo similar, lo encuentra
+4. **Actualiza conocimiento** al final del día
+5. **Pide retrospectiva** mensual para mantener la KB viva
 
 ## FAQ
 
 **¿Puedo usar el power en cualquier proyecto?**
-Sí. El power se instala globalmente. Funciona en cualquier workspace.
+Sí. Se instala globalmente. Pero los hooks y scripts solo funcionan si abres este repo en Kiro.
 
 **¿Qué pasa si no tengo VPN?**
-Oracle no conectará, pero Jira, Confluence, Engram y Context7 siguen funcionando.
+Oracle no conecta, pero Jira, Confluence, Engram y Context7 siguen funcionando.
 
-**¿Cómo actualizo el power?**
-`bash powers/corex-n3/update.sh` — actualiza todo sin pedir credenciales.
-
-**¿Puedo modificar los steering?**
-Sí. Los steering en `.kiro/steering/` del proyecto son editables. Los cambios aplican inmediatamente.
+**¿Cómo actualizo?**
+`git pull && bash powers/corex-n3/update.sh`
 
 **¿Engram se llena?**
-La DB SQLite crece con el uso pero es muy eficiente. Miles de observaciones ocupan pocos MB.
+La DB SQLite es muy eficiente. Miles de observaciones ocupan pocos MB.
 
 **¿Qué pasa si dos personas editan el mismo package Oracle?**
-El hook de detección de colisiones te avisa antes de que hagas cambios.
+El hook de detección de colisiones te avisa antes de hacer cambios.
