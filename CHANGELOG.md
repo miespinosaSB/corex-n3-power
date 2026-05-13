@@ -7,6 +7,11 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 
 ## [No publicado]
 
+### Agregado
+- Se exportó conocimiento Engram a `shared-knowledge/` — 4 archivos con decisiones, arquitectura de facturación, patrones/bugfixes y resúmenes de sesión (65 observaciones, 17 sesiones)
+- Se agregó Estrategia 8 "Buscar UPDATEs Post-INSERT" en `diagnostico-eficiente.md` — regla crítica para casos de facturación donde CB100270 modifica imp_prima después del INSERT (aprendizaje MDSB-992543)
+- Se agregó tabla C1000270 (diferidos) en `oracle-consultas.md` como tabla crítica para diagnóstico de facturación en autos
+
 ### Cambiado
 - Se optimizaron 6 steering files de reglas (tech-stack, libraries, security, code-style, architecture, ai-generated-code) de `inclusion: always` a `inclusion: fileMatch` para reducir consumo de contexto en sesiones de soporte N3
 - Se simplificó steering de Engram para no activarse automáticamente al inicio de cada sesión, solo cuando hay trabajo significativo
