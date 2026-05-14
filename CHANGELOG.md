@@ -7,6 +7,10 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 
 ## [No publicado]
 
+### Cambiado
+- Se actualizó configuración de `mcp-atlassian` para soportar credenciales separadas de Confluence (`CONFLUENCE_USERNAME`, `CONFLUENCE_API_TOKEN`) requeridas por nueva versión del servidor MCP
+- Se actualizaron scripts de instalación (`install.sh`, `install.ps1`) para solicitar credenciales de Confluence de forma independiente (con fallback al mismo token de Jira)
+
 ### Agregado
 - Se exportó conocimiento Engram a `shared-knowledge/` — 4 archivos con decisiones, arquitectura de facturación, patrones/bugfixes y resúmenes de sesión (65 observaciones, 17 sesiones)
 - Se agregó Estrategia 8 "Buscar UPDATEs Post-INSERT" en `diagnostico-eficiente.md` — regla crítica para casos de facturación donde CB100270 modifica imp_prima después del INSERT (aprendizaje MDSB-992543)

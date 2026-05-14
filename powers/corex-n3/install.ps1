@@ -41,10 +41,20 @@ Write-Host ""
 $JiraEmail = Read-Host "   Email corporativo (ej: nombre@segurosbolivar.com)"
 if ([string]::IsNullOrEmpty($JiraEmail)) { Write-Host "❌ Email es obligatorio" -ForegroundColor Red; exit 1 }
 
-Write-Host "   API Token de Atlassian (crear en https://id.atlassian.com/manage-profile/security/api-tokens)" -ForegroundColor Gray
-$JiraToken = Read-Host "   Token" -AsSecureString
+Write-Host "   API Token de Jira (crear en https://id.atlassian.com/manage-profile/security/api-tokens)" -ForegroundColor Gray
+$JiraToken = Read-Host "   Token Jira" -AsSecureString
 $JiraTokenPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($JiraToken))
-if ([string]::IsNullOrEmpty($JiraTokenPlain)) { Write-Host "❌ Token es obligatorio" -ForegroundColor Red; exit 1 }
+if ([string]::IsNullOrEmpty($JiraTokenPlain)) { Write-Host "❌ Token de Jira es obligatorio" -ForegroundColor Red; exit 1 }
+
+Write-Host ""
+Write-Host "   📝 Confluence ahora requiere credenciales separadas." -ForegroundColor Yellow
+$ConfluenceEmail = Read-Host "   Email para Confluence (Enter para usar el mismo: $JiraEmail)"
+if ([string]::IsNullOrEmpty($ConfluenceEmail)) { $ConfluenceEmail = $JiraEmail }
+
+Write-Host "   API Token de Confluence (puede ser el mismo token de Atlassian)" -ForegroundColor Gray
+$ConfluenceToken = Read-Host "   Token Confluence (Enter para usar el mismo)" -AsSecureString
+$ConfluenceTokenPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ConfluenceToken))
+if ([string]::IsNullOrEmpty($ConfluenceTokenPlain)) { $ConfluenceTokenPlain = $JiraTokenPlain }
 
 $OraUser = Read-Host "   Usuario Oracle dev (ej: DEV_1072660049)"
 if ([string]::IsNullOrEmpty($OraUser)) { Write-Host "❌ Usuario Oracle es obligatorio" -ForegroundColor Red; exit 1 }
@@ -71,8 +81,8 @@ $mcpContent = @"
         "JIRA_USERNAME": "$JiraEmail",
         "JIRA_API_TOKEN": "$JiraTokenPlain",
         "CONFLUENCE_URL": "https://jirasegurosbolivar.atlassian.net/wiki",
-        "CONFLUENCE_USERNAME": "$JiraEmail",
-        "CONFLUENCE_API_TOKEN": "$JiraTokenPlain"
+        "CONFLUENCE_USERNAME": "$ConfluenceEmail",
+        "CONFLUENCE_API_TOKEN": "$ConfluenceTokenPlain"
       }
     },
     "oracle-readonly": {

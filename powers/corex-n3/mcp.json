@@ -6,7 +6,9 @@
       "env": {
         "UV_NATIVE_TLS": "true",
         "JIRA_URL": "https://jirasegurosbolivar.atlassian.net",
-        "CONFLUENCE_URL": "https://jirasegurosbolivar.atlassian.net/wiki"
+        "CONFLUENCE_URL": "https://jirasegurosbolivar.atlassian.net/wiki",
+        "CONFLUENCE_USERNAME": "${CONFLUENCE_USERNAME}",
+        "CONFLUENCE_API_TOKEN": "${CONFLUENCE_API_TOKEN}"
       },
       "autoApprove": [
         "jira_search", "confluence_search", "jira_get_issue", "jira_get_issue_dates",

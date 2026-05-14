@@ -99,12 +99,22 @@ if [ -z "$JIRA_EMAIL" ]; then
     echo "❌ Email es obligatorio"; exit 1
 fi
 
-echo "   API Token de Atlassian (crear en https://id.atlassian.com/manage-profile/security/api-tokens)"
-read -sp "   Token: " JIRA_TOKEN
+echo "   API Token de Jira (crear en https://id.atlassian.com/manage-profile/security/api-tokens)"
+read -sp "   Token Jira: " JIRA_TOKEN
 echo ""
 if [ -z "$JIRA_TOKEN" ]; then
-    echo "❌ Token es obligatorio"; exit 1
+    echo "❌ Token de Jira es obligatorio"; exit 1
 fi
+
+echo ""
+echo "   📝 Confluence ahora requiere credenciales separadas."
+read -p "   Email para Confluence (Enter para usar el mismo: $JIRA_EMAIL): " CONFLUENCE_EMAIL
+CONFLUENCE_EMAIL="${CONFLUENCE_EMAIL:-$JIRA_EMAIL}"
+
+echo "   API Token de Confluence (puede ser el mismo token de Atlassian)"
+read -sp "   Token Confluence: " CONFLUENCE_TOKEN
+echo ""
+CONFLUENCE_TOKEN="${CONFLUENCE_TOKEN:-$JIRA_TOKEN}"
 
 read -p "   Usuario Oracle dev (ej: DEV_1072660049): " ORA_USER
 if [ -z "$ORA_USER" ]; then
@@ -122,6 +132,8 @@ mkdir -p "$SETTINGS_DIR"
 cat > "$ENV_FILE" << ENVEOF
 JIRA_USERNAME=$JIRA_EMAIL
 JIRA_API_TOKEN=$JIRA_TOKEN
+CONFLUENCE_USERNAME=$CONFLUENCE_EMAIL
+CONFLUENCE_API_TOKEN=$CONFLUENCE_TOKEN
 ORACLE_USER=$ORA_USER
 ORACLE_PASSWORD=$ORA_PASS
 ENVEOF
