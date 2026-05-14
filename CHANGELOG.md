@@ -14,6 +14,9 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 ### Corregido
 - Se corrigió instalación de agentes — ahora `install.sh` e `install.ps1` copian todos los agentes disponibles (diagnóstico, implementación, retrospectiva) en vez de solo el de diagnóstico
 
+### Cambiado
+- Se reescribió el prompt del agente de diagnóstico para hacer el trazado de código fuente (debug paso a paso) el paso central y obligatorio — gate de calidad impide reportar sin evidencia de código leído
+
 ### Agregado
 - Se exportó conocimiento Engram a `shared-knowledge/` — 4 archivos con decisiones, arquitectura de facturación, patrones/bugfixes y resúmenes de sesión (65 observaciones, 17 sesiones)
 - Se agregó Estrategia 8 "Buscar UPDATEs Post-INSERT" en `diagnostico-eficiente.md` — regla crítica para casos de facturación donde CB100270 modifica imp_prima después del INSERT (aprendizaje MDSB-992543)
