@@ -23,13 +23,17 @@ New-Item -ItemType Directory -Force -Path $ServerDir | Out-Null
 Copy-Item "$ScriptDir\server.py" $ServerPath -Force
 Write-Host "✅ server.py instalado" -ForegroundColor Green
 
-# 2. Copiar agente global
+# 2. Copiar agentes globales
 New-Item -ItemType Directory -Force -Path $AgentDir | Out-Null
-$RepoRoot = Split-Path (Split-Path $ScriptDir)
-$AgentSource = Join-Path $RepoRoot ".kiro\agents\corex-incident-diagnostics.md"
-if (Test-Path $AgentSource) {
-    Copy-Item $AgentSource (Join-Path $AgentDir "corex-incident-diagnostics.md") -Force
-    Write-Host "✅ Agente de diagnóstico instalado (global)" -ForegroundColor Green
+$AgentSrcDir = Join-Path $ScriptDir "agents"
+if (Test-Path $AgentSrcDir) {
+    $agentFiles = Get-ChildItem -Path $AgentSrcDir -File -Include "*.json","*.md" -Recurse
+    foreach ($f in $agentFiles) {
+        Copy-Item $f.FullName (Join-Path $AgentDir $f.Name) -Force
+    }
+    Write-Host "✅ $($agentFiles.Count) archivos de agentes instalados (global: ~/.kiro/agents/)" -ForegroundColor Green
+} else {
+    Write-Host "⚠️  Carpeta agents/ no encontrada en el power, saltando..." -ForegroundColor Yellow
 }
 
 # 3. Pedir credenciales interactivamente

@@ -29,10 +29,11 @@ echo "✅ server.py instalado en $SERVER_PATH"
 mkdir -p "$AGENT_DIR"
 AGENT_SRC_DIR="$SCRIPT_DIR/agents"
 if [ -d "$AGENT_SRC_DIR" ]; then
-    cp "$AGENT_SRC_DIR/corex-incident-diagnostics.json" "$AGENT_DIR/" 2>/dev/null
-    cp "$AGENT_SRC_DIR/corex-incident-diagnostics.md" "$AGENT_DIR/" 2>/dev/null
-    cp "$AGENT_SRC_DIR/corex-incident-diagnostics.prompt.md" "$AGENT_DIR/" 2>/dev/null
-    echo "✅ Agente de diagnóstico instalado (global: ~/.kiro/agents/)"
+    AGENT_COUNT=0
+    for agent_file in "$AGENT_SRC_DIR"/*.json "$AGENT_SRC_DIR"/*.md "$AGENT_SRC_DIR"/*.prompt.md; do
+        [ -f "$agent_file" ] && cp "$agent_file" "$AGENT_DIR/" && AGENT_COUNT=$((AGENT_COUNT + 1))
+    done
+    echo "✅ $AGENT_COUNT archivos de agentes instalados (global: ~/.kiro/agents/)"
 else
     echo "⚠️  Carpeta agents/ no encontrada en el power, saltando..."
 fi
