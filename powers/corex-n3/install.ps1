@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # Instalador interactivo del Power corex-n3 (Windows)
 # Pide credenciales y genera la configuración global
 # ============================================================
@@ -14,14 +14,14 @@ $ServerPath = Join-Path $ServerDir "server.py"
 $McpFile = Join-Path $SettingsDir "mcp.json"
 
 Write-Host ""
-Write-Host "🔧 Instalador del Power corex-n3 — Tribu Corex" -ForegroundColor Cyan
+Write-Host "[+] Instalador del Power corex-n3 -- Tribu Corex" -ForegroundColor Cyan
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
 
 # 1. Copiar server.py
 New-Item -ItemType Directory -Force -Path $ServerDir | Out-Null
 Copy-Item "$ScriptDir\server.py" $ServerPath -Force
-Write-Host "✅ server.py instalado" -ForegroundColor Green
+Write-Host "[OK] server.py instalado" -ForegroundColor Green
 
 # 2. Copiar agentes globales
 New-Item -ItemType Directory -Force -Path $AgentDir | Out-Null
@@ -31,41 +31,41 @@ if (Test-Path $AgentSrcDir) {
     foreach ($f in $agentFiles) {
         Copy-Item $f.FullName (Join-Path $AgentDir $f.Name) -Force
     }
-    Write-Host "✅ $($agentFiles.Count) archivos de agentes instalados (global: ~/.kiro/agents/)" -ForegroundColor Green
+    Write-Host ('[OK] ' + $agentFiles.Count + ' archivos de agentes instalados (global: ~/.kiro/agents/)') -ForegroundColor Green
 } else {
-    Write-Host "⚠️  Carpeta agents/ no encontrada en el power, saltando..." -ForegroundColor Yellow
+    Write-Host "[!!] Carpeta agents/ no encontrada en el power, saltando..." -ForegroundColor Yellow
 }
 
 # 3. Pedir credenciales interactivamente
 Write-Host ""
-Write-Host "📋 Configuración de credenciales" -ForegroundColor Yellow
-Write-Host "   (se guardan en $McpFile)" -ForegroundColor Gray
+Write-Host "[*] Configuracion de credenciales" -ForegroundColor Yellow
+Write-Host ('   (se guardan en ' + $McpFile + ')') -ForegroundColor Gray
 Write-Host ""
 
-$JiraEmail = Read-Host "   Email corporativo (ej: nombre@segurosbolivar.com)"
-if ([string]::IsNullOrEmpty($JiraEmail)) { Write-Host "❌ Email es obligatorio" -ForegroundColor Red; exit 1 }
+$JiraEmail = Read-Host '   Email corporativo (ej: nombre@segurosbolivar.com)'
+if ([string]::IsNullOrEmpty($JiraEmail)) { Write-Host "[X] Email es obligatorio" -ForegroundColor Red; exit 1 }
 
-Write-Host "   API Token de Jira (crear en https://id.atlassian.com/manage-profile/security/api-tokens)" -ForegroundColor Gray
+Write-Host '   API Token de Jira (crear en https://id.atlassian.com/manage-profile/security/api-tokens)' -ForegroundColor Gray
 $JiraToken = Read-Host "   Token Jira" -AsSecureString
 $JiraTokenPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($JiraToken))
-if ([string]::IsNullOrEmpty($JiraTokenPlain)) { Write-Host "❌ Token de Jira es obligatorio" -ForegroundColor Red; exit 1 }
+if ([string]::IsNullOrEmpty($JiraTokenPlain)) { Write-Host "[X] Token de Jira es obligatorio" -ForegroundColor Red; exit 1 }
 
 Write-Host ""
-Write-Host "   📝 Confluence ahora requiere credenciales separadas." -ForegroundColor Yellow
-$ConfluenceEmail = Read-Host "   Email para Confluence (Enter para usar el mismo: $JiraEmail)"
+Write-Host "   [i] Confluence ahora requiere credenciales separadas." -ForegroundColor Yellow
+$ConfluenceEmail = Read-Host ('   Email para Confluence (Enter para usar el mismo: ' + $JiraEmail + ')')
 if ([string]::IsNullOrEmpty($ConfluenceEmail)) { $ConfluenceEmail = $JiraEmail }
 
-Write-Host "   API Token de Confluence (puede ser el mismo token de Atlassian)" -ForegroundColor Gray
-$ConfluenceToken = Read-Host "   Token Confluence (Enter para usar el mismo)" -AsSecureString
+Write-Host '   API Token de Confluence (puede ser el mismo token de Atlassian)' -ForegroundColor Gray
+$ConfluenceToken = Read-Host '   Token Confluence (Enter para usar el mismo)' -AsSecureString
 $ConfluenceTokenPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ConfluenceToken))
 if ([string]::IsNullOrEmpty($ConfluenceTokenPlain)) { $ConfluenceTokenPlain = $JiraTokenPlain }
 
-$OraUser = Read-Host "   Usuario Oracle dev (ej: DEV_1072660049)"
-if ([string]::IsNullOrEmpty($OraUser)) { Write-Host "❌ Usuario Oracle es obligatorio" -ForegroundColor Red; exit 1 }
+$OraUser = Read-Host '   Usuario Oracle dev (ej: DEV_1072660049)'
+if ([string]::IsNullOrEmpty($OraUser)) { Write-Host "[X] Usuario Oracle es obligatorio" -ForegroundColor Red; exit 1 }
 
 $OraPass = Read-Host "   Password Oracle" -AsSecureString
 $OraPassPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($OraPass))
-if ([string]::IsNullOrEmpty($OraPassPlain)) { Write-Host "❌ Password Oracle es obligatorio" -ForegroundColor Red; exit 1 }
+if ([string]::IsNullOrEmpty($OraPassPlain)) { Write-Host "[X] Password Oracle es obligatorio" -ForegroundColor Red; exit 1 }
 
 # 4. Generar mcp.json global
 New-Item -ItemType Directory -Force -Path $SettingsDir | Out-Null
@@ -119,20 +119,20 @@ $mcpContent = @"
 
 Set-Content -Path $McpFile -Value $mcpContent -Encoding UTF8
 Write-Host ""
-Write-Host "✅ Configuración MCP generada en: $McpFile" -ForegroundColor Green
+Write-Host "[OK] Configuracion MCP generada en: $McpFile" -ForegroundColor Green
 
 # 5. Resumen
 Write-Host ""
 Write-Host "================================================" -ForegroundColor Cyan
-Write-Host "✅ Instalación completa!" -ForegroundColor Green
+Write-Host "[OK] Instalacion completa!" -ForegroundColor Green
 Write-Host ""
 Write-Host "   Siguiente paso:" -ForegroundColor White
-Write-Host "   → En Kiro: Command Palette → 'Install Power from local directory'" -ForegroundColor White
+Write-Host "   -> En Kiro: Command Palette -> 'Install Power from local directory'" -ForegroundColor White
 Write-Host "     Selecciona: $ScriptDir" -ForegroundColor Gray
 Write-Host ""
 Write-Host "   El power funciona GLOBALMENTE desde cualquier workspace." -ForegroundColor White
 Write-Host "   Puedes cambiar de rama tranquilo." -ForegroundColor White
 Write-Host ""
 Write-Host "   Para actualizar credenciales después:" -ForegroundColor White
-Write-Host "   → Editar: $McpFile" -ForegroundColor Gray
+Write-Host "   -> Editar: $McpFile" -ForegroundColor Gray
 Write-Host "================================================" -ForegroundColor Cyan
