@@ -165,12 +165,21 @@ powers/corex-n3/
 - **API Token Atlassian**: [Crear aquí](https://id.atlassian.com/manage-profile/security/api-tokens)
 - **Usuario Oracle** dev (solicitar a DBA)
 - **VPN corporativa** activa (para acceso a Oracle)
+- **Oracle Instant Client 19c+ (64-bit)** — necesario para `oracle-stage` (thick mode):
+  - [Windows x64](https://www.oracle.com/database/technologies/instant-client/winx64-64-downloads.html)
+  - [macOS](https://www.oracle.com/database/technologies/instant-client/macos-intel-x86-downloads.html)
+  - [Linux x64](https://www.oracle.com/database/technologies/instant-client/linux-x86-64-downloads.html)
+  - Descomprimir en `C:\oracle\` (Windows) o `~/Downloads/` (macOS)
+  - El server auto-detecta el client, o configurar `ORACLE_CLIENT_DIR` en el `.env`
 
 ## Troubleshooting
 
 | Problema | Solución |
 |---|---|
 | Oracle no conecta | Verificar VPN + credenciales en `~/.kiro/settings/.env` |
+| `DPY-3015: password verifier type 0x939` | Instalar Oracle Instant Client 19c+ (64-bit) y configurar `ORACLE_CLIENT_DIR` |
+| `DPI-1047: Cannot locate a 64-bit Oracle Client` | El Instant Client instalado es 32-bit. Descargar versión 64-bit |
+| oracle-stage en thin mode | Verificar que `ORACLE_CLIENT_DIR` apunta al directorio con `oci.dll` (Win) o `libclntsh` (Mac/Linux) |
 | Engram no responde | Verificar `~/.local/bin/engram version` |
 | Context7 falla | Verificar `npx -y @upstash/context7-mcp@latest --help` |
 | Power no aparece en Kiro | Reinstalar: Command Palette → "Install Power from local directory" |

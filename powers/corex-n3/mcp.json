@@ -41,8 +41,9 @@
         "ORACLE_HOST": "10.7.2.14",
         "ORACLE_PORT": "1521",
         "ORACLE_SID": "tron",
-        "ORACLE_USER": "consulta_puma",
-        "ORACLE_PASSWORD": "P4m4C0ns4lt4"
+        "ORACLE_USER": "${ORACLE_STAGE_USER:consulta_puma}",
+        "ORACLE_PASSWORD": "${ORACLE_STAGE_PASSWORD:P4m4C0ns4lt4}",
+        "ORACLE_CLIENT_DIR": "${ORACLE_CLIENT_DIR}"
       },
       "autoApprove": ["query", "list_tables", "describe_table", "list_schemas", "get_source", "search_objects", "get_dependencies"]
     },

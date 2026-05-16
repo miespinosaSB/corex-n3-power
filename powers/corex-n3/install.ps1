@@ -67,6 +67,35 @@ $OraPass = Read-Host "   Password Oracle" -AsSecureString
 $OraPassPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($OraPass))
 if ([string]::IsNullOrEmpty($OraPassPlain)) { Write-Host "[X] Password Oracle es obligatorio" -ForegroundColor Red; exit 1 }
 
+# 4b. Oracle Instant Client (necesario para oracle-stage)
+Write-Host ""
+Write-Host "   [i] Oracle Stage requiere Instant Client 19c+ (64-bit) para thick mode." -ForegroundColor Yellow
+Write-Host "   Descarga: https://www.oracle.com/database/technologies/instant-client/winx64-64-downloads.html" -ForegroundColor Gray
+Write-Host "   Descomprime en C:\oracle\instantclient_XXX (ej: C:\oracle\instantclient_23_0)" -ForegroundColor Gray
+Write-Host ""
+$OraClientDir = Read-Host '   Ruta al Instant Client (Enter para auto-detectar en C:\oracle)'
+if ([string]::IsNullOrEmpty($OraClientDir)) {
+    # Auto-detectar
+    $oracleBase = "C:\oracle"
+    if (Test-Path $oracleBase) {
+        $candidates = Get-ChildItem $oracleBase -Directory -Recurse -Depth 2 | Where-Object {
+            (Test-Path (Join-Path $_.FullName "oci.dll"))
+        } | Sort-Object Name -Descending | Select-Object -First 1
+        if ($candidates) {
+            $OraClientDir = $candidates.FullName
+            Write-Host "   [OK] Auto-detectado: $OraClientDir" -ForegroundColor Green
+        } else {
+            Write-Host "   [!!] No se encontro Instant Client. oracle-stage usara thin mode (puede fallar)." -ForegroundColor Yellow
+            $OraClientDir = ""
+        }
+    } else {
+        Write-Host "   [!!] C:\oracle no existe. oracle-stage usara thin mode (puede fallar)." -ForegroundColor Yellow
+        $OraClientDir = ""
+    }
+}
+# Convertir a forward slashes para compatibilidad
+$OraClientDirJson = $OraClientDir.Replace('\', '/')
+
 # 4. Generar mcp.json global
 New-Item -ItemType Directory -Force -Path $SettingsDir | Out-Null
 
@@ -110,7 +139,8 @@ $mcpContent = @"
         "ORACLE_PORT": "1521",
         "ORACLE_SID": "tron",
         "ORACLE_USER": "consulta_puma",
-        "ORACLE_PASSWORD": "P4m4C0ns4lt4"
+        "ORACLE_PASSWORD": "P4m4C0ns4lt4",
+        "ORACLE_CLIENT_DIR": "$OraClientDirJson"
       }
     }
   }

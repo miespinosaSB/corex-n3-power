@@ -5,10 +5,28 @@ Soporta modo thin (sin Oracle Client) y thick (con Instant Client).
 Auto-configura certificados SSL para redes corporativas con proxy.
 
 Para habilitar thick mode (necesario para algunas BDs como stage):
-  1. Descargar Oracle Instant Client Basic Light para tu plataforma
-  2. Configurar ORACLE_CLIENT_DIR con la ruta al directorio del client
-     Ejemplo: ORACLE_CLIENT_DIR=/Users/usuario/Downloads/instantclient_23_26
-  Si ORACLE_CLIENT_DIR no está configurado, usa thin mode automáticamente.
+  1. Descargar Oracle Instant Client Basic (64-bit) para tu plataforma:
+     - Windows: https://www.oracle.com/database/technologies/instant-client/winx64-64-downloads.html
+     - macOS:   https://www.oracle.com/database/technologies/instant-client/macos-intel-x86-downloads.html
+     - Linux:   https://www.oracle.com/database/technologies/instant-client/linux-x86-64-downloads.html
+  2. Descomprimir en una ubicación conocida.
+  3. Configurar ORACLE_CLIENT_DIR con la ruta al directorio que contiene oci.dll (Windows)
+     o libclntsh (Linux/macOS).
+     Ejemplos:
+       Windows: ORACLE_CLIENT_DIR=C:/oracle/instantclient_19c/instantclient_23_0
+       macOS:   ORACLE_CLIENT_DIR=/Users/usuario/Downloads/instantclient_23_6
+       Linux:   ORACLE_CLIENT_DIR=/opt/oracle/instantclient_21_0
+
+  Si ORACLE_CLIENT_DIR no está configurado, el servidor intenta auto-detectar
+  Oracle Instant Client en rutas comunes:
+    - Windows: C:\\oracle\\instantclient*\\**
+    - macOS:   ~/Downloads/instantclient_*, /opt/oracle/instantclient
+    - Linux:   /opt/oracle/instantclient, /usr/lib/oracle/client
+
+  Si no se encuentra ningún client, usa thin mode automáticamente.
+
+  NOTA: En Windows, el path puede usar forward slashes (C:/oracle/...) o
+  formato Unix de Git Bash (/c/oracle/...) — ambos se resuelven automáticamente.
 """
 
 # /// script
@@ -65,12 +83,27 @@ setup_ssl_certs()
 ORACLE_CLIENT_DIR = os.getenv("ORACLE_CLIENT_DIR", "")
 THICK_MODE = False
 
+
+def _resolve_client_dir(path: str) -> str:
+    """Convierte paths estilo Unix (/c/...) a Windows (C:\\...) si es necesario."""
+    if platform.system() == "Windows" and path.startswith("/"):
+        import re as _re
+        m = _re.match(r"^/([a-zA-Z])/(.*)", path)
+        if m:
+            drive = m.group(1).upper()
+            rest = m.group(2).replace("/", "\\")
+            return drive + ":\\" + rest
+    return path
+
+
 if ORACLE_CLIENT_DIR:
+    resolved_dir = _resolve_client_dir(ORACLE_CLIENT_DIR)
     try:
-        oracledb.init_oracle_client(lib_dir=ORACLE_CLIENT_DIR)
+        oracledb.init_oracle_client(lib_dir=resolved_dir)
         THICK_MODE = True
+        print(f"[INFO] Thick mode habilitado con ORACLE_CLIENT_DIR: {resolved_dir}", file=sys.stderr)
     except Exception as e:
-        print(f"[WARN] No se pudo inicializar thick mode: {e}", file=sys.stderr)
+        print(f"[WARN] No se pudo inicializar thick mode con '{resolved_dir}': {e}", file=sys.stderr)
         print("[WARN] Continuando en thin mode...", file=sys.stderr)
 else:
     # Intentar auto-detectar Instant Client en rutas comunes
@@ -88,16 +121,37 @@ else:
     elif platform.system() == "Linux":
         common_paths = ["/opt/oracle/instantclient", "/usr/lib/oracle/client"]
     elif platform.system() == "Windows":
-        common_paths = [r"C:\oracle\instantclient"]
+        # Buscar en C:\oracle y subdirectorios comunes
+        oracle_base = r"C:\oracle"
+        if os.path.isdir(oracle_base):
+            for d in sorted(os.listdir(oracle_base), reverse=True):
+                subdir = os.path.join(oracle_base, d)
+                if os.path.isdir(subdir) and d.startswith("instantclient"):
+                    # Puede tener un subdirectorio adicional (e.g. instantclient_19c/instantclient_23_0)
+                    for sd in os.listdir(subdir):
+                        nested = os.path.join(subdir, sd)
+                        if os.path.isdir(nested) and sd.startswith("instantclient"):
+                            common_paths.append(nested)
+                    common_paths.append(subdir)
+
+    def _has_oracle_lib(path: str) -> bool:
+        """Verifica si un directorio contiene las librerías de Oracle Client."""
+        try:
+            files = os.listdir(path)
+        except OSError:
+            return False
+        # Windows: oci.dll, Linux/Mac: libclntsh*
+        return any(f == "oci.dll" or f.startswith("libclntsh") for f in files)
 
     for path in common_paths:
-        if os.path.isdir(path) and any(f.startswith("libclntsh") for f in os.listdir(path)):
+        if os.path.isdir(path) and _has_oracle_lib(path):
             try:
                 oracledb.init_oracle_client(lib_dir=path)
                 THICK_MODE = True
                 print(f"[INFO] Thick mode habilitado con: {path}", file=sys.stderr)
                 break
-            except Exception:
+            except Exception as e:
+                print(f"[WARN] Falló init_oracle_client con {path}: {e}", file=sys.stderr)
                 continue
 
     if not THICK_MODE:
