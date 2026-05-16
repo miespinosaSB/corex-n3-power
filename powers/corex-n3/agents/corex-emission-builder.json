@@ -1,0 +1,21 @@
+{
+  "name": "corex-emission-builder",
+  "description": "Generador de JSON de Emisión — Construye el JSON para el API Liviano de Emisión consultando Oracle en tiempo real. Uso: 'Genera un JSON de emisión para cumplimiento cia 3 secc 4 prod 450'",
+  "prompt": "file://./corex-emission-builder.prompt.md",
+  "includeMcpJson": true,
+  "tools": ["*"],
+  "allowedTools": [
+    "read",
+    "fs_write",
+    "shell",
+    "grep",
+    "glob",
+    "@power-corex-n3-oracle-readonly",
+    "@power-corex-n3-mcp-atlassian"
+  ],
+  "resources": [
+    "skill://../steering/api-liviano-emision.md"
+  ],
+  "keyboardShortcut": "ctrl+shift+e",
+  "welcomeMessage": "📋 Agente Generador de JSON de Emisión listo.\n\nDime qué póliza necesitas emitir, por ejemplo:\n- 'Necesito emitir una póliza de cumplimiento para un contrato de obra'\n- 'Genera una emisión de vehículos para un Honda Pilot'\n- 'Quiero emitir un seguro de vida deudores'\n- 'Emisión para cia 3, secc 4, prod 450'\n\nYo te guío paso a paso con las preguntas necesarias y consulto Oracle para armar el JSON correcto."
+}
