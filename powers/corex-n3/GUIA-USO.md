@@ -83,6 +83,26 @@ Tú: "Retrospectiva"
 
 Analiza los últimos 30 días y propone mejoras a la KB y al power.
 
+### Generar JSON de emisión
+
+```
+Tú: "Genera un JSON de emisión para cumplimiento cia 3 secc 4 prod 450"
+```
+
+O usa `Ctrl+Shift+E` para cambiar al agente de emisión.
+
+El agente:
+1. Identifica el producto y consulta Oracle (campos obligatorios, coberturas)
+2. Te guía con preguntas en lenguaje de negocio (o usa póliza de referencia)
+3. Genera el JSON listo para `POST /api/v1/expgenerica/procesar`
+4. Guarda memoria en Confluence para futuras emisiones del mismo producto
+
+Modos disponibles:
+- **Conversacional**: "Necesito emitir una póliza de cumplimiento" → te guía paso a paso
+- **Express**: Das todos los datos de una vez → genera directo
+- **Referencia**: "Emisión para cia 3, secc 4, prod 450 — busca póliza de referencia" → usa datos de una póliza existente
+- **Cotización**: "Cotiza una póliza de..." → mismo JSON pero con proceso 241/240
+
 ## Skills — Cómo funcionan
 
 Se activan automáticamente cuando tu request coincide:

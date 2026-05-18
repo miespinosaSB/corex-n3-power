@@ -7,6 +7,11 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 
 ## [No publicado]
 
+### Agregado
+- Se agregó sub-agente `corex-emission-builder` (Ctrl+Shift+E) — generador de JSON para API Liviano de Emisión con consulta Oracle en tiempo real, memoria en Confluence, y modo cotización (proceso 241/240)
+- Se agregó script `build-emision-json.js` — ensamblador de JSON de emisión con validaciones de negocio, soporte de templates, metadata y exclusión automática de campos innecesarios (MrcCtzcn)
+- Se creó página de memoria "450 - CUMPLIMIENTO PARTICULARES" en Confluence (espacio BDCT) con valores validados, restricciones y NR_UNC de referencia
+
 ### Cambiado
 - Se actualizó configuración de `mcp-atlassian` para soportar credenciales separadas de Confluence (`CONFLUENCE_USERNAME`, `CONFLUENCE_API_TOKEN`) requeridas por nueva versión del servidor MCP
 - Se actualizaron scripts de instalación (`install.sh`, `install.ps1`) para solicitar credenciales de Confluence de forma independiente (con fallback al mismo token de Jira)

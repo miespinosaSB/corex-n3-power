@@ -26,12 +26,13 @@ bash powers/corex-n3/install.sh
 | `engram` | Memoria persistente entre sesiones (SQLite local) |
 | `context7` | Documentación actualizada de librerías (Spring Boot, etc.) |
 
-### 3 Sub-agentes especializados
+### 4 Sub-agentes especializados
 
 | Agente | Shortcut | Uso |
 |---|---|---|
 | `corex-incident-diagnostics` | `Ctrl+Shift+D` | "Diagnostica el caso MDSB-XXXXX" |
 | `corex-implementation` | — | "Implementa el fix para GD986-XXXX" |
+| `corex-emission-builder` | `Ctrl+Shift+E` | "Genera un JSON de emisión para [producto]" |
 | `corex-retrospective` | — | "Retrospectiva" / "Mejora el power" |
 
 ### 4 Skills (carga progresiva)
@@ -65,6 +66,7 @@ Convenciones Oracle, workflows Jira, templates Confluence, estándares Adapter V
 | `engram-sync.sh import` | Importar memorias de compañeros |
 | `metrics-report.sh` | Reporte de uso (diagnósticos, tiempos, herramientas) |
 | `generate-source-index.sh` | Indexar repos COBOL/Forms para diagnóstico |
+| `build-emision-json.js` | Ensamblar JSON de emisión con validaciones de negocio |
 
 ## Comandos principales
 
@@ -77,6 +79,8 @@ Convenciones Oracle, workflows Jira, templates Confluence, estándares Adapter V
 | "Retrospectiva" | Análisis de últimos 30 días + propuestas de mejora |
 | "Consulta en prod" | Genera MDSB con SQL para bot AIOps |
 | "Pre-diagnostica los pendientes" | Diagnóstico ligero de MDSB sin asignar |
+| "Genera un JSON de emisión para..." | Construye JSON para API Liviano consultando Oracle |
+| "Emisión para cia 3, secc 4, prod 450" | Modo directo con códigos de producto |
 
 ## Actualización
 
@@ -101,6 +105,7 @@ Si se modificó el `mcp.json` del power (nuevos servidores), hay que desinstalar
 │  Sub-agentes                                                │
 │  ├── corex-incident-diagnostics (Ctrl+Shift+D)              │
 │  ├── corex-implementation                                   │
+│  ├── corex-emission-builder (Ctrl+Shift+E)                  │
 │  └── corex-retrospective                                    │
 ├─────────────────────────────────────────────────────────────┤
 │  Hooks (17 hooks de protección y automatización)            │

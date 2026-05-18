@@ -118,6 +118,26 @@ Al decir **"retrospectiva"**, **"mejora el power"**, o **"auto-mejora"**, el age
 - Patrones de problemas repetidos no documentados en la KB
 - Tablas frecuentes que deberían estar en el diccionario de datos
 - Consultas SQL candidatas a ser estándar
+
+## Comando: "Genera un JSON de emisión para [producto]"
+
+Al decir **"genera un JSON de emisión"**, **"emisión para cia X secc Y prod Z"**, **"cotiza una póliza de..."**, o usar `Ctrl+Shift+E`, se activa el sub-agente `corex-emission-builder`:
+
+1. **Identifica producto** → Conversacional (guía al usuario) o directo (si da códigos)
+2. **Consulta memoria** → Busca en Confluence si ya hay valores validados para ese producto
+3. **Consulta Oracle** → G2000020 (campos obligatorios), A1002100 (coberturas), INTERMEDIARIOS
+4. **Ensambla JSON** → Genera `datos-emision-<producto>.json` y ejecuta `build-emision-json.js`
+5. **Valida** → Pre-flight check de reglas de negocio
+6. **Entrega** → JSON listo para `POST /api/v1/expgenerica/procesar`
+7. **Actualiza memoria** → Crea/actualiza página en Confluence con valores descubiertos
+
+**Modos:**
+- **Conversacional**: Te guía con preguntas en lenguaje de negocio
+- **Express**: Proporcionas todos los datos → genera directo
+- **Referencia**: "Busca póliza de referencia" → usa datos de una póliza existente
+- **Cotización**: Mismo JSON pero con proceso 241/subproceso 240 (en vez de 261/260)
+
+Ver steering `api-liviano-emision.md` para la referencia técnica completa.
 - Mejoras a los propios steering files del power
 
 Las mejoras a la KB se aplican directamente. Las mejoras a steering files se proponen y esperan aprobación.
