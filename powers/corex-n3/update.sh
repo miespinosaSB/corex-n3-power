@@ -1,8 +1,8 @@
 #!/bin/bash
 # ============================================================
 # Actualizador del Power corex-n3 (macOS / Linux)
-# Actualiza server.py, agente, skills y steering sin pedir
-# credenciales de nuevo (las mantiene del .env existente)
+# Actualiza server.py, scripts, agentes, skills y steering
+# sin pedir credenciales (las mantiene del .env existente)
 # ============================================================
 
 set -e
@@ -33,42 +33,62 @@ mkdir -p "$SERVER_DIR"
 cp "$SCRIPT_DIR/server.py" "$SERVER_DIR/server.py"
 echo "✅ server.py actualizado"
 
-# 2. Actualizar agente
+# 2. Actualizar scripts del power
+SCRIPTS_SRC="$SCRIPT_DIR/scripts"
+if [ -d "$SCRIPTS_SRC" ]; then
+    mkdir -p "$SERVER_DIR/scripts"
+    SCRIPT_COUNT=0
+    for script_file in "$SCRIPTS_SRC"/*; do
+        [ -f "$script_file" ] && cp "$script_file" "$SERVER_DIR/scripts/" && SCRIPT_COUNT=$((SCRIPT_COUNT + 1))
+    done
+    echo "✅ $SCRIPT_COUNT scripts actualizados"
+fi
+
+# 3. Actualizar TODOS los agentes (dinámico)
 mkdir -p "$AGENT_DIR"
 AGENT_SRC_DIR="$SCRIPT_DIR/agents"
 if [ -d "$AGENT_SRC_DIR" ]; then
-    cp "$AGENT_SRC_DIR/corex-incident-diagnostics.json" "$AGENT_DIR/" 2>/dev/null
-    cp "$AGENT_SRC_DIR/corex-incident-diagnostics.md" "$AGENT_DIR/" 2>/dev/null
-    cp "$AGENT_SRC_DIR/corex-incident-diagnostics.prompt.md" "$AGENT_DIR/" 2>/dev/null
-    echo "✅ Agente de diagnóstico actualizado"
+    AGENT_COUNT=0
+    for agent_file in "$AGENT_SRC_DIR"/*.json "$AGENT_SRC_DIR"/*.md; do
+        [ -f "$agent_file" ] && cp "$agent_file" "$AGENT_DIR/" && AGENT_COUNT=$((AGENT_COUNT + 1))
+    done
+    echo "✅ $AGENT_COUNT archivos de agentes actualizados"
+else
+    echo "⚠️  Carpeta agents/ no encontrada, saltando..."
 fi
 
-# 3. Actualizar skills
+# 4. Actualizar skills
 SKILLS_SRC="$SCRIPT_DIR/skills"
 if [ -d "$SKILLS_SRC" ]; then
+    SKILL_COUNT=0
     for skill_dir in "$SKILLS_SRC"/*/; do
+        [ -d "$skill_dir" ] || continue
         skill_name=$(basename "$skill_dir")
         mkdir -p "$SKILLS_DIR/$skill_name"
-        cp "$skill_dir/SKILL.md" "$SKILLS_DIR/$skill_name/SKILL.md" 2>/dev/null
+        cp "$skill_dir/SKILL.md" "$SKILLS_DIR/$skill_name/SKILL.md" 2>/dev/null && SKILL_COUNT=$((SKILL_COUNT + 1))
     done
-    echo "✅ Skills actualizadas"
+    echo "✅ $SKILL_COUNT skills actualizadas"
 fi
 
-# 4. Actualizar steering global
-ENGRAM_STEERING="$SCRIPT_DIR/steering-global/engram-knowledge-sync.md"
-if [ -f "$ENGRAM_STEERING" ]; then
+# 5. Actualizar steering global
+GLOBAL_STEERING_SRC="$SCRIPT_DIR/steering-global"
+if [ -d "$GLOBAL_STEERING_SRC" ]; then
     mkdir -p "$STEERING_DIR"
-    cp "$ENGRAM_STEERING" "$STEERING_DIR/engram-knowledge-sync.md"
-    echo "✅ Steering global actualizado"
+    STEER_COUNT=0
+    for steer_file in "$GLOBAL_STEERING_SRC"/*.md; do
+        [ -f "$steer_file" ] && cp "$steer_file" "$STEERING_DIR/" && STEER_COUNT=$((STEER_COUNT + 1))
+    done
+    echo "✅ $STEER_COUNT steering files globales actualizados"
+else
+    echo "⚠️  Carpeta steering-global/ no encontrada, saltando..."
 fi
 
-# 5. Actualizar Engram si hay versión nueva
+# 6. Actualizar Engram si hay versión nueva
 ENGRAM_BIN="$HOME/.local/bin/engram"
 if [ -f "$ENGRAM_BIN" ]; then
     CURRENT_VERSION=$($ENGRAM_BIN version 2>/dev/null || echo "unknown")
     echo "   Engram actual: $CURRENT_VERSION"
 
-    # Intentar descargar la última versión
     ARCH="$(uname -m)"
     OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
     if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
@@ -95,19 +115,20 @@ if [ -f "$ENGRAM_BIN" ]; then
     else
         echo "⚠️  No se pudo verificar actualización de Engram (sin conexión?)"
     fi
+else
+    echo "⚠️  Engram no encontrado. Ejecuta install.sh para instalarlo."
 fi
 
-# 6. Resumen
+# 7. Resumen
 echo ""
 echo "================================================"
 echo "✅ Actualización completa!"
 echo ""
 echo "   Credenciales: sin cambios (usa $ENV_FILE existente)"
 echo ""
+echo "   Siguiente paso:"
+echo "   → Reiniciar Kiro (o reconectar MCP servers desde el panel)"
+echo ""
 echo "   Si cambiaste el mcp.json del power:"
 echo "   → Desinstalar y reinstalar el power desde Kiro"
-echo "   → Reiniciar Kiro"
-echo ""
-echo "   Si solo actualizaste server.py/agente/skills:"
-echo "   → Reiniciar Kiro es suficiente"
 echo "================================================"
