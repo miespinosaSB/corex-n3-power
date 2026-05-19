@@ -11,6 +11,7 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 - Se reescribió `update.sh` — ahora copia dinámicamente TODOS los agentes, scripts y steering globales (antes solo copiaba el agente de diagnóstico hardcoded)
 
 ### Agregado
+- Se creó steering `owasp-top10-seguridad.md` — reglas de seguridad OWASP Top 10 (2021) adaptadas al stack Corex: Spring Boot 3, Adaptador V3, Oracle/PL-SQL, API Gateway. Incluye ejemplos de código, checklist de code review y sección específica para PL/SQL
 - Se agregó sub-agente `corex-emission-builder` (Ctrl+Shift+E) — generador de JSON para API Liviano de Emisión con consulta Oracle en tiempo real, memoria en Confluence, y modo cotización (proceso 241/240)
 - Se agregó script `build-emision-json.js` — ensamblador de JSON de emisión con validaciones de negocio, soporte de templates, metadata y exclusión automática de campos innecesarios (MrcCtzcn)
 - Se creó página de memoria "450 - CUMPLIMIENTO PARTICULARES" en Confluence (espacio BDCT) con valores validados, restricciones y NR_UNC de referencia
