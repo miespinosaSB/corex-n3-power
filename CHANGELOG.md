@@ -7,6 +7,9 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 
 ## [No publicado]
 
+### Corregido
+- Se reescribió `update.sh` — ahora copia dinámicamente TODOS los agentes, scripts y steering globales (antes solo copiaba el agente de diagnóstico hardcoded)
+
 ### Agregado
 - Se agregó sub-agente `corex-emission-builder` (Ctrl+Shift+E) — generador de JSON para API Liviano de Emisión con consulta Oracle en tiempo real, memoria en Confluence, y modo cotización (proceso 241/240)
 - Se agregó script `build-emision-json.js` — ensamblador de JSON de emisión con validaciones de negocio, soporte de templates, metadata y exclusión automática de campos innecesarios (MrcCtzcn)
