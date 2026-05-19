@@ -1,31 +1,31 @@
 #!/bin/bash
 # ============================================================================
-# engram-sync.sh — Sincronización de conocimiento Engram entre compañeros
+# engram-sync.sh — Export de conocimiento Engram a shared-knowledge/
+#
+# Engram es a nivel de USUARIO (SQLite local en ~/.engram/), no por proyecto.
+# Este script exporta TODO el conocimiento relevante de todos los proyectos
+# a archivos markdown versionables en Git.
 #
 # Uso:
-#   ./engram-sync.sh export   → Exporta memorias locales a shared-knowledge/
-#   ./engram-sync.sh import   → Importa memorias de compañeros desde Git
-#   ./engram-sync.sh status   → Muestra estado de sincronización
-#
-# Flujo:
-#   1. Cada dev exporta sus memorias relevantes (tipo: pattern, architecture, decision, bugfix)
-#   2. Se commitean en shared-knowledge/<usuario>.json
-#   3. Al hacer pull, cada dev importa las memorias nuevas de los demás
+#   ./engram-sync.sh export              → Exporta TODOS los proyectos
+#   ./engram-sync.sh export <proyecto>   → Exporta solo un proyecto
+#   ./engram-sync.sh status              → Muestra estadísticas
 #
 # Requisitos:
-#   - engram CLI instalado (viene con el power corex-n3)
-#   - Git configurado en el repo
+#   - Python 3 con sqlite3 (viene con macOS/Linux)
+#   - Engram DB en ~/.engram/engram.db
+#
+# Destino:
+#   El export se genera en shared-knowledge/ del repo donde se ejecute.
+#   Puede ejecutarse desde CUALQUIER directorio — busca el repo root via git.
 # ============================================================================
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# Detectar repo root (funciona desde cualquier subdirectorio)
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 SHARED_DIR="$REPO_ROOT/shared-knowledge"
-CURRENT_USER=$(git config user.name 2>/dev/null || echo "unknown")
-CURRENT_USER_SLUG=$(echo "$CURRENT_USER" | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
-EXPORT_FILE="$SHARED_DIR/${CURRENT_USER_SLUG}.json"
-PROJECT="tronador-oracle-db"
+ENGRAM_DB="$HOME/.engram/engram.db"
 
 # Colores
 RED='\033[0;31m'
@@ -39,287 +39,241 @@ log_ok() { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-ensure_shared_dir() {
-    mkdir -p "$SHARED_DIR"
-    if [ ! -f "$SHARED_DIR/.gitkeep" ]; then
-        touch "$SHARED_DIR/.gitkeep"
+check_engram_db() {
+    if [ ! -f "$ENGRAM_DB" ]; then
+        log_error "No se encontró Engram DB en $ENGRAM_DB"
+        log_info "Engram almacena todo en ~/.engram/engram.db (nivel usuario, no proyecto)"
+        exit 1
     fi
-    if [ ! -f "$SHARED_DIR/README.md" ]; then
-        cat > "$SHARED_DIR/README.md" << 'EOF'
-# Shared Knowledge — Engram Sync
-
-Este directorio contiene memorias exportadas por cada miembro del equipo.
-Se sincroniza vía Git para compartir conocimiento entre sesiones y personas.
-
-## Estructura
-
-```
-<usuario>.json    — Memorias exportadas por cada dev
-manifest.json     — Registro de última sincronización
-```
-
-## Tipos de memorias compartidas
-
-Solo se exportan memorias de tipo:
-- `pattern` — Patrones técnicos reutilizables
-- `architecture` — Decisiones de arquitectura
-- `decision` — Decisiones técnicas del equipo
-- `bugfix` — Bugs resueltos con causa raíz
-
-NO se exportan: `manual`, `learning`, `discovery`, `config` (son personales).
-
-## Cómo usar
-
-```bash
-# Exportar tus memorias al repo
-powers/corex-n3/scripts/engram-sync.sh export
-
-# Importar memorias de compañeros
-powers/corex-n3/scripts/engram-sync.sh import
-
-# Ver estado
-powers/corex-n3/scripts/engram-sync.sh status
-```
-EOF
-    fi
+    log_info "Engram DB: $ENGRAM_DB"
 }
 
 do_export() {
-    log_info "Exportando memorias de '$CURRENT_USER' para proyecto '$PROJECT'..."
-    ensure_shared_dir
+    local PROJECT_FILTER="${1:-}"
+    check_engram_db
+    mkdir -p "$SHARED_DIR"
 
-    # Usar engram CLI para buscar memorias compartibles
-    # Solo tipos: pattern, architecture, decision, bugfix
-    local TYPES=("pattern" "architecture" "decision" "bugfix")
-    local MEMORIES="[]"
-    local COUNT=0
+    local DATE_NOW
+    DATE_NOW=$(date +%Y-%m-%d)
 
-    for TYPE in "${TYPES[@]}"; do
-        # Buscar memorias por tipo usando engram search
-        local RESULTS
-        RESULTS=$(engram search --project "$PROJECT" --type "$TYPE" --json --limit 50 2>/dev/null || echo "[]")
-
-        if [ "$RESULTS" != "[]" ] && [ -n "$RESULTS" ]; then
-            # Merge results into MEMORIES array
-            MEMORIES=$(echo "$MEMORIES" "$RESULTS" | python3 -c "
-import json, sys
-parts = sys.stdin.read().split(']')
-all_items = []
-for part in parts:
-    part = part.strip().lstrip('[').strip()
-    if part:
-        try:
-            items = json.loads('[' + part + ']')
-            all_items.extend(items)
-        except:
-            pass
-# Deduplicate by title
-seen = set()
-unique = []
-for item in all_items:
-    title = item.get('title', '')
-    if title not in seen:
-        seen.add(title)
-        unique.append(item)
-        
-print(json.dumps(unique, ensure_ascii=False))
-" 2>/dev/null || echo "$MEMORIES")
-            COUNT=$(echo "$MEMORIES" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
-        fi
-    done
-
-    # Si engram CLI no está disponible, crear export vacío con metadata
-    if [ "$COUNT" = "0" ]; then
-        log_warn "No se encontraron memorias exportables (o engram CLI no disponible)"
-        log_info "Creando archivo de export con metadata..."
-        MEMORIES="[]"
+    local WHERE_CLAUSE=""
+    if [ -n "$PROJECT_FILTER" ]; then
+        WHERE_CLAUSE="AND project = '$PROJECT_FILTER'"
+        log_info "Exportando proyecto: $PROJECT_FILTER"
+    else
+        log_info "Exportando TODOS los proyectos"
     fi
 
-    # Escribir archivo de export
-    python3 -c "
-import json
+    # Export usando Python + sqlite3 (disponible en cualquier sistema)
+    python3 << PYTHON_SCRIPT
+import sqlite3
+import os
 from datetime import datetime
 
-data = {
-    'version': '1.0.0',
-    'exported_by': '$CURRENT_USER',
-    'exported_at': datetime.utcnow().isoformat() + 'Z',
-    'project': '$PROJECT',
-    'memories': json.loads('''$MEMORIES''') if '''$MEMORIES''' != '[]' else []
-}
+db_path = "$ENGRAM_DB"
+shared_dir = "$SHARED_DIR"
+date_now = "$DATE_NOW"
+project_filter = "$PROJECT_FILTER"
 
-with open('$EXPORT_FILE', 'w', encoding='utf-8') as f:
-    json.dump(data, f, ensure_ascii=False, indent=2)
+conn = sqlite3.connect(db_path)
+conn.row_factory = sqlite3.Row
 
-print(f'Exportadas {len(data[\"memories\"])} memorias')
-" 2>/dev/null || {
-        # Fallback si python falla
-        cat > "$EXPORT_FILE" << EOJSON
-{
-  "version": "1.0.0",
-  "exported_by": "$CURRENT_USER",
-  "exported_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "project": "$PROJECT",
-  "memories": []
-}
-EOJSON
-        log_warn "Export creado vacío (python3 no disponible para serializar)"
-    }
+# Obtener todas las observaciones activas (no borradas)
+where = "WHERE deleted_at IS NULL"
+if project_filter:
+    where += f" AND project = '{project_filter}'"
 
-    log_ok "Archivo exportado: $EXPORT_FILE"
-    log_info "Recuerda hacer commit: git add shared-knowledge/ && git commit -m 'chore: sync engram knowledge'"
-}
+rows = conn.execute(f"""
+    SELECT id, title, type, content, project, scope, topic_key, created_at
+    FROM observations
+    {where}
+    ORDER BY project, type, created_at DESC
+""").fetchall()
 
-do_import() {
-    log_info "Importando memorias de compañeros..."
-    ensure_shared_dir
+if not rows:
+    print(f"⚠️  No se encontraron observaciones")
+    exit(0)
 
-    local IMPORTED=0
-    local SKIPPED=0
+# Agrupar por categoría
+decisions = []
+architecture = []
+patterns_bugfixes = []
+sessions = []
+other = []
 
-    for FILE in "$SHARED_DIR"/*.json; do
-        [ -f "$FILE" ] || continue
+for row in rows:
+    entry = dict(row)
+    t = entry.get('type', '')
+    if t == 'decision':
+        decisions.append(entry)
+    elif t == 'architecture':
+        architecture.append(entry)
+    elif t in ('pattern', 'bugfix'):
+        patterns_bugfixes.append(entry)
+    elif t == 'session_summary':
+        sessions.append(entry)
+    else:
+        other.append(entry)
 
-        # Skip own file
-        if [ "$FILE" = "$EXPORT_FILE" ]; then
-            continue
-        fi
+# Contar por proyecto
+projects = {}
+for row in rows:
+    p = dict(row).get('project', 'unknown')
+    projects[p] = projects.get(p, 0) + 1
 
-        local AUTHOR
-        AUTHOR=$(python3 -c "
-import json
-with open('$FILE') as f:
-    data = json.load(f)
-print(data.get('exported_by', 'unknown'))
-" 2>/dev/null || echo "unknown")
+project_summary = ", ".join(f"{k} ({v})" for k, v in sorted(projects.items()))
 
-        local MEM_COUNT
-        MEM_COUNT=$(python3 -c "
-import json
-with open('$FILE') as f:
-    data = json.load(f)
-print(len(data.get('memories', [])))
-" 2>/dev/null || echo "0")
+def write_section(f, entries, show_project=True):
+    for entry in entries:
+        f.write(f"\n## #{entry['id']} — {entry['title']}\n\n")
+        proj_tag = f" | **Proyecto:** {entry['project']}" if show_project and not project_filter else ""
+        topic_tag = f" | **Topic:** {entry.get('topic_key', '')}" if entry.get('topic_key') else ""
+        f.write(f"**Tipo:** {entry['type']} | **Fecha:** {entry['created_at'][:10]}{proj_tag}{topic_tag}\n\n")
+        f.write(f"{entry['content']}\n\n")
+        f.write("---\n")
 
-        if [ "$MEM_COUNT" = "0" ]; then
-            log_warn "  $AUTHOR: sin memorias para importar"
-            continue
-        fi
+# 1. Decisiones
+if decisions:
+    path = os.path.join(shared_dir, "decisions.md")
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(f"# Decisiones Técnicas — Engram Export\n\n")
+        f.write(f"> Exportado: {date_now} | Proyectos: {project_summary} | {len(rows)} observaciones totales\n\n")
+        f.write("---\n")
+        write_section(f, decisions)
+    print(f"  ✅ decisions.md — {len(decisions)} entradas")
 
-        log_info "  Importando $MEM_COUNT memorias de $AUTHOR..."
+# 2. Arquitectura
+if architecture:
+    path = os.path.join(shared_dir, "architecture-facturacion.md")
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(f"# Arquitectura y Diseño — Engram Export\n\n")
+        f.write(f"> Exportado: {date_now} | Proyectos: {project_summary}\n\n")
+        f.write("---\n")
+        write_section(f, architecture)
+    print(f"  ✅ architecture-facturacion.md — {len(architecture)} entradas")
 
-        # Importar cada memoria via engram save (skip duplicates)
-        python3 -c "
-import json, subprocess, sys
+# 3. Patrones y Bugfixes
+if patterns_bugfixes:
+    path = os.path.join(shared_dir, "patterns-bugfixes.md")
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(f"# Patrones y Bugfixes — Engram Export\n\n")
+        f.write(f"> Exportado: {date_now} | Proyectos: {project_summary}\n\n")
+        f.write("---\n")
+        write_section(f, patterns_bugfixes)
+    print(f"  ✅ patterns-bugfixes.md — {len(patterns_bugfixes)} entradas")
 
-with open('$FILE') as f:
-    data = json.load(f)
+# 4. Sesiones
+if sessions:
+    path = os.path.join(shared_dir, "sessions-summary.md")
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(f"# Resúmenes de Sesión — Engram Export\n\n")
+        f.write(f"> Exportado: {date_now} | Proyectos: {project_summary}\n\n")
+        f.write("---\n")
+        write_section(f, sessions)
+    print(f"  ✅ sessions-summary.md — {len(sessions)} entradas")
 
-imported = 0
-skipped = 0
+# 5. Otros (discovery, learning, config, manual)
+if other:
+    path = os.path.join(shared_dir, "discoveries-other.md")
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(f"# Descubrimientos y Otros — Engram Export\n\n")
+        f.write(f"> Exportado: {date_now} | Proyectos: {project_summary}\n\n")
+        f.write("---\n")
+        write_section(f, other)
+    print(f"  ✅ discoveries-other.md — {len(other)} entradas")
 
-for mem in data.get('memories', []):
-    title = mem.get('title', '')
-    content = mem.get('content', '')
-    mem_type = mem.get('type', 'pattern')
-    
-    # Check if already exists (search by title)
-    try:
-        result = subprocess.run(
-            ['engram', 'search', '--project', '$PROJECT', '--query', title, '--json', '--limit', '1'],
-            capture_output=True, text=True, timeout=10
-        )
-        if title.lower() in result.stdout.lower():
-            skipped += 1
-            continue
-    except:
-        pass
-    
-    # Save new memory
-    try:
-        subprocess.run(
-            ['engram', 'save', '--project', '$PROJECT', '--title', title, '--type', mem_type, '--content', content],
-            capture_output=True, text=True, timeout=10
-        )
-        imported += 1
-    except:
-        skipped += 1
+# Resumen
+print(f"\n📊 Total: {len(rows)} observaciones de {len(projects)} proyecto(s)")
+print(f"   Decisiones: {len(decisions)} | Arquitectura: {len(architecture)} | Patrones/Bugs: {len(patterns_bugfixes)} | Sesiones: {len(sessions)} | Otros: {len(other)}")
 
-print(f'{imported} importadas, {skipped} omitidas (duplicadas)')
-" 2>/dev/null || log_warn "  No se pudo importar de $AUTHOR (engram CLI no disponible)"
+conn.close()
+PYTHON_SCRIPT
 
-        IMPORTED=$((IMPORTED + 1))
-    done
-
-    if [ "$IMPORTED" = "0" ]; then
-        log_info "No hay archivos de compañeros para importar"
-    else
-        log_ok "Importación completada de $IMPORTED archivos"
-    fi
+    echo ""
+    log_ok "Export completado en: $SHARED_DIR/"
+    log_info "Para commitear: git add shared-knowledge/ && git commit -m 'docs: actualizar export Engram'"
 }
 
 do_status() {
-    log_info "Estado de sincronización Engram"
-    echo ""
-    ensure_shared_dir
-
-    echo "📁 Directorio: $SHARED_DIR"
-    echo "👤 Usuario actual: $CURRENT_USER ($CURRENT_USER_SLUG)"
-    echo ""
-
-    if [ -f "$EXPORT_FILE" ]; then
-        local LAST_EXPORT
-        LAST_EXPORT=$(python3 -c "
-import json
-with open('$EXPORT_FILE') as f:
-    data = json.load(f)
-print(f\"{data.get('exported_at', 'nunca')} — {len(data.get('memories', []))} memorias\")
-" 2>/dev/null || echo "error leyendo")
-        echo "📤 Último export: $LAST_EXPORT"
-    else
-        echo "📤 Último export: nunca (ejecuta './engram-sync.sh export')"
-    fi
+    check_engram_db
 
     echo ""
-    echo "📥 Archivos de compañeros:"
-    local HAS_FILES=false
-    for FILE in "$SHARED_DIR"/*.json; do
-        [ -f "$FILE" ] || continue
-        [ "$FILE" = "$EXPORT_FILE" ] && continue
-        HAS_FILES=true
+    log_info "📊 Estado de Engram (nivel usuario)"
+    echo ""
 
-        local INFO
-        INFO=$(python3 -c "
-import json
-with open('$FILE') as f:
-    data = json.load(f)
-print(f\"  {data.get('exported_by', '?'):20s} | {data.get('exported_at', '?'):25s} | {len(data.get('memories', []))} memorias\")
-" 2>/dev/null || echo "  $(basename "$FILE")")
-        echo "$INFO"
-    done
+    python3 << PYTHON_SCRIPT
+import sqlite3
+import os
+from datetime import datetime
 
-    if [ "$HAS_FILES" = "false" ]; then
-        echo "  (ninguno — tus compañeros aún no han exportado)"
-    fi
+db_path = "$ENGRAM_DB"
+shared_dir = "$SHARED_DIR"
+
+conn = sqlite3.connect(db_path)
+
+# Stats globales
+total = conn.execute("SELECT COUNT(*) FROM observations WHERE deleted_at IS NULL").fetchone()[0]
+projects = conn.execute("SELECT DISTINCT project FROM observations WHERE deleted_at IS NULL").fetchall()
+sessions = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+
+print(f"  DB: {db_path}")
+print(f"  Observaciones: {total}")
+print(f"  Sesiones: {sessions}")
+print(f"  Proyectos: {len(projects)}")
+print()
+
+# Por proyecto
+print("  📁 Por proyecto:")
+for (proj,) in projects:
+    count = conn.execute("SELECT COUNT(*) FROM observations WHERE project = ? AND deleted_at IS NULL", (proj,)).fetchone()[0]
+    types = conn.execute("""
+        SELECT type, COUNT(*) FROM observations 
+        WHERE project = ? AND deleted_at IS NULL 
+        GROUP BY type ORDER BY COUNT(*) DESC
+    """, (proj,)).fetchall()
+    type_str = ", ".join(f"{t}:{c}" for t, c in types)
+    print(f"     {proj}: {count} obs ({type_str})")
+
+# Último export
+print()
+if os.path.isdir(shared_dir):
+    files = [f for f in os.listdir(shared_dir) if f.endswith('.md') and f != 'README.md']
+    if files:
+        newest = max(os.path.getmtime(os.path.join(shared_dir, f)) for f in files)
+        newest_date = datetime.fromtimestamp(newest).strftime('%Y-%m-%d %H:%M')
+        print(f"  📤 Último export: {newest_date}")
+        print(f"     Archivos: {', '.join(sorted(files))}")
+    else:
+        print("  📤 Último export: nunca")
+else:
+    print("  📤 Último export: nunca (directorio no existe)")
+
+conn.close()
+PYTHON_SCRIPT
 }
 
 # Main
 case "${1:-help}" in
     export)
-        do_export
-        ;;
-    import)
-        do_import
+        do_export "${2:-}"
         ;;
     status)
         do_status
         ;;
     *)
-        echo "Uso: $0 {export|import|status}"
+        echo "Uso: $0 {export|status} [proyecto]"
         echo ""
-        echo "  export  — Exporta tus memorias compartibles al repo"
-        echo "  import  — Importa memorias de compañeros"
-        echo "  status  — Muestra estado de sincronización"
+        echo "  export              — Exporta TODAS las memorias a shared-knowledge/"
+        echo "  export <proyecto>   — Exporta solo un proyecto específico"
+        echo "  status              — Muestra estadísticas de Engram"
+        echo ""
+        echo "Engram es a nivel de USUARIO (~/.engram/engram.db)."
+        echo "Puedes ejecutar este script desde cualquier repo con Git."
+        echo ""
+        echo "Proyectos disponibles (según última sesión):"
+        echo "  - tronador-oracle-db"
+        echo "  - corex-n3-power"
+        echo "  - simon-cotizadores-core-wl"
         exit 1
         ;;
 esac

@@ -89,6 +89,21 @@ SELECT ...
 
 3. **Engram (automático):** Guardar el resumen de la retrospectiva como observación tipo `learning`.
 
+### Fase 5: Backup de conocimiento
+
+Ejecutar el export de Engram al repositorio para que el conocimiento quede versionado en Git:
+
+```bash
+./powers/corex-n3/scripts/engram-sync.sh export
+```
+
+Esto genera/actualiza los archivos en `shared-knowledge/` con todas las observaciones categorizadas. Luego commitear:
+
+```bash
+git add shared-knowledge/
+git commit -m "docs: actualizar export Engram — retrospectiva $(date +%Y-%m-%d)"
+```
+
 ## Métricas de salud del power
 
 Calcular y reportar:

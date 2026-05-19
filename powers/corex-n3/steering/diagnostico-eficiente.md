@@ -366,6 +366,56 @@ Si un diagnóstico termina en confianza Baja → evaluar qué información falta
 
 ---
 
+## Estrategia 8: Buscar UPDATEs Post-INSERT (Lección MDSB-992543)
+
+⚠️ **REGLA CRÍTICA para casos de facturación:**
+
+Cuando se intenta reproducir numéricamente un monto en A2000163 y la fórmula del INSERT (en `prc_InsNormal` de AB100273) NO reproduce el valor real:
+
+**→ Buscar UPDATEs a A2000163 en paquetes que se ejecutan DESPUÉS del INSERT.**
+
+El flujo de facturación NO termina en el INSERT. Hay paquetes que modifican `imp_prima` después:
+
+| Paquete | Cuándo se ejecuta | Qué hace |
+|---------|-------------------|----------|
+| **Sim_Pck299_Cb100270** | Después de prc_Premios, cuando PeriodoFact=1 AND CodSecc=1 AND NumEnd>0 AND TipoEnd NOT IN ('AT','RE') | UPDATE A2000163 sumando diferidos de C1000270 × V_factor |
+| prc_ArmoPremio | Después de prc_Premios | UPDATE premio/impuesto (NO modifica imp_prima) |
+| prc_DiferenciasAj | Después de prc_Proceso | UPDATE registros contables (NO modifica GENERICOS) |
+
+### Flujo completo de facturación (orden real):
+
+```
+prc_Inicio
+  → prc_VenctoNew (calcula FechaVtoFact)
+  → prc_CalcCoeficiente (calcula v_CoefFact)
+  → prc_Proceso
+      → prc_Premios → prc_InsNormal (INSERT A2000163)  ← Paso 1
+      → prc_Imptos
+      → prc_ArmoPremio (UPDATE premio/impuesto)
+      → prc_RamoContPre
+      → prc_Comisiones
+      → Sim_Pck299_Cb100270.Prc_Proceso (UPDATE imp_prima con diferidos)  ← Paso 2 ⚠️
+```
+
+### Fórmula completa para Autos (sección 1) con diferidos:
+
+```
+IMP_PRIMA_FINAL = ROUND(IMP_PRIMA_END × v_CoefFact, 0) + (IMP_PRIMA_163_C1000270 × V_factor × V_coefpol)
+```
+
+Donde:
+- `V_factor = CEIL(MONTHS_BETWEEN(FechaVencPol, FechaVtoFact))` — meses restantes
+- `IMP_PRIMA_163` viene de C1000270 para los riesgos excluidos
+- `V_coefpol` = proporción del registro contable respecto al total
+
+### Regla de diagnóstico:
+
+> Si `ROUND(IMP_PRIMA_END × CoefFact, 0)` ≠ valor real en A2000163 para sección 1 con periodo mensual:
+> → La diferencia es el ajuste de diferidos de CB100270.
+> → Verificar C1000270 para el riesgo afectado.
+
+---
+
 ## Resumen de Reglas
 
 1. **Engram primero.** Siempre buscar diagnósticos previos antes de cualquier otra fuente.
@@ -377,3 +427,4 @@ Si un diagnóstico termina en confianza Baja → evaluar qué información falta
 7. **Templates sobre queries ad-hoc.** Usar los templates pre-armados, solo ajustar parámetros.
 8. **No suponer, no calcular.** Toda afirmación debe estar respaldada por código fuente leído o datos verificados.
 9. **Cada caso mejora el sistema.** Si un diagnóstico requirió exploración, documentar para que el siguiente no la necesite.
+10. **Buscar UPDATEs post-INSERT.** En facturación, el valor final de A2000163 puede ser modificado DESPUÉS del INSERT por paquetes como CB100270.

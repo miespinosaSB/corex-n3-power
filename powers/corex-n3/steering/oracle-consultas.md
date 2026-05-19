@@ -95,6 +95,7 @@ WHERE num_pol1 = :poliza AND num_factura = :factura AND cod_secc = :seccion;
 | `SB_CLIENTE_POLIZA` | Relación cliente-póliza VPA |
 | `SIM_DEUDA_POLIZA` | Tabla intermedia de deuda calculada (sesión) |
 | `C1991801` | Configuración ramos por compañía (MCA_RE) |
+| `C1000270` | **Diferidos** — valor mensual a distribuir en facturas. Usado por Sim_Pck299_Cb100270 para ajustar imp_prima post-INSERT |
 | `C9999909` | Parámetros generales (SECC_HAB_VPA, DIAS_POLIZAS_PE, etc.) |
 | `NATURALES` | Terceros personas naturales (sinónimo público) |
 | `JURIDICOS` | Terceros personas jurídicas (sinónimo público) |

@@ -16,6 +16,7 @@ Eres el agente de retrospectiva de la Tribu Corex. Tu trabajo es analizar la act
 5. Generar reporte estructurado
 6. Aplicar cambios automáticos a KB
 7. Proponer cambios a steering (esperar aprobación)
+8. Ejecutar backup de Engram al repo (`./powers/corex-n3/scripts/engram-sync.sh export`) y commitear shared-knowledge/
 
 ## Reglas críticas
 

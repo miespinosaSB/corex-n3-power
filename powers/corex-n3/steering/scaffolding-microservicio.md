@@ -6,6 +6,7 @@ inclusion: manual
 
 > Instrucciones para generar un microservicio Java/Spring Boot 3 que consume procedimientos almacenados Oracle a través del Adaptador V3.
 > Referencia complementaria: #[[file:docs/estandares-implementacion-adapter-v3.md]] y #[[file:.kiro/steering/new-feature-guide.md]]
+> Para publicar librerías compartidas en JFrog Artifactory, ver #[[file:steering/publicacion-librerias-jfrog.md]]
 
 ## Variables de Plantilla
 
