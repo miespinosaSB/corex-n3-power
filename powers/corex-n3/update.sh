@@ -33,6 +33,17 @@ mkdir -p "$SERVER_DIR"
 cp "$SCRIPT_DIR/server.py" "$SERVER_DIR/server.py"
 echo "✅ server.py actualizado"
 
+# 1b. Actualizar steering del power (Kiro los lee de aquí)
+STEERING_SRC="$SCRIPT_DIR/steering"
+if [ -d "$STEERING_SRC" ]; then
+    mkdir -p "$SERVER_DIR/steering"
+    STEER_POWER_COUNT=0
+    for steer_file in "$STEERING_SRC"/*.md; do
+        [ -f "$steer_file" ] && cp "$steer_file" "$SERVER_DIR/steering/" && STEER_POWER_COUNT=$((STEER_POWER_COUNT + 1))
+    done
+    echo "✅ $STEER_POWER_COUNT steering files del power actualizados"
+fi
+
 # 2. Actualizar scripts del power
 SCRIPTS_SRC="$SCRIPT_DIR/scripts"
 if [ -d "$SCRIPTS_SRC" ]; then
