@@ -3,9 +3,9 @@ inclusion: fileMatch
 fileMatchPattern: "**/*.java,**/*.gradle,**/*.yml,**/*.yaml,**/*.properties"
 ---
 
-# OWASP Top 10 (2021) — Reglas de Seguridad para Microservicios Corex
+# OWASP Top 10  — Reglas de Seguridad para Microservicios Corex
 
-> Referencia: [OWASP Top 10 - 2021](https://owasp.org/Top10/)
+> Referencia: [OWASP Top 10](https://owasp.org/Top10/)
 > Aplica a: Microservicios Spring Boot 3 + Adaptador V3 + Oracle/PL-SQL + API Gateway
 
 ---
