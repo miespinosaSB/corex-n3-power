@@ -383,8 +383,19 @@ public class SecurityHeadersFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
+        // Prevenir MIME-type sniffing
         httpResponse.setHeader("X-Content-Type-Options", "nosniff");
+        // Forzar HTTPS en navegadores
         httpResponse.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+        // Prevenir clickjacking
+        httpResponse.setHeader("X-Frame-Options", "DENY");
+        // Prevenir caching de respuestas sensibles
+        httpResponse.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        httpResponse.setHeader("Pragma", "no-cache");
+        // Content Security Policy restrictiva para APIs (no sirven HTML)
+        httpResponse.setHeader("Content-Security-Policy", "default-src 'none'");
+        // No revelar servidor
+        httpResponse.setHeader("X-Permitted-Cross-Domain-Policies", "none");
         chain.doFilter(request, response);
     }
 }
@@ -402,7 +413,51 @@ public class BolivarLoggerConfig {
 ```
 
 ### OpenApiConfig.java
-Crear con título, descripción, versión, contacto y servidores del nuevo microservicio.
+
+**IMPORTANTE:** Solo activar en ambientes no productivos para no exponer la documentación del API en producción.
+
+```java
+@Configuration
+@Profile({"dev", "stage"})  // NO se activa en producción
+public class OpenApiConfig {
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("{descripcion}")
+                        .version("1.0.0")
+                        .description("API REST — {NombreMs}")
+                        .contact(new Contact()
+                                .name("{contacto-nombre}")
+                                .email("{contacto-email}")))
+                .addServersItem(new Server()
+                        .url("http://localhost:8080/{context-path}")
+                        .description("Local"));
+    }
+}
+```
+
+Adicionalmente, condicionar las rutas de Swagger en `application.yml` por perfil:
+
+```yaml
+# En application.yml (se activa solo si OpenApiConfig existe — perfiles dev/stage)
+springdoc:
+  api-docs:
+    path: /srv-{context-path}-openapi
+  swagger-ui:
+    path: /swagger-ui.html
+```
+
+En producción, al no existir el bean `OpenApiConfig`, springdoc no expone endpoints. Para mayor seguridad, agregar en un `application-prod.yml`:
+
+```yaml
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+```
 
 ## Pipeline CI/CD
 

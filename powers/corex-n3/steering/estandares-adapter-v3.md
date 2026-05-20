@@ -213,6 +213,76 @@ public class DatabaseAdapterV3Config {
 
 ## 4. Implementación del Repository (Adapter)
 
+### 4.0 Validación de Input Obligatoria (Bean Validation)
+
+**Todo Request que llega al Controller DEBE tener validación antes de llegar al Service/Repository.**
+
+#### Reglas
+
+1. Anotar el parámetro del controller con `@Valid`:
+```java
+@PostMapping("/polizas/consultar")
+public ResponseEntity<ConsultaResponse> consultar(@Valid @RequestBody ConsultaRequest request) {
+    return ResponseEntity.ok(service.consultar(request));
+}
+```
+
+2. Definir restricciones en el Request model:
+```java
+public record ConsultaRequest(
+    @NotBlank(message = "Número de póliza es obligatorio")
+    @Size(max = 20, message = "Número de póliza no puede exceder 20 caracteres")
+    @Pattern(regexp = "^[0-9]+$", message = "Número de póliza solo acepta dígitos")
+    String nroPoliza,
+
+    @NotBlank(message = "Número de documento es obligatorio")
+    @Size(max = 15, message = "Número de documento no puede exceder 15 caracteres")
+    @Pattern(regexp = "^[0-9]+$", message = "Número de documento solo acepta dígitos")
+    String nroDocumento,
+
+    @Size(max = 100, message = "Nombre no puede exceder 100 caracteres")
+    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]*$", message = "Nombre contiene caracteres no permitidos")
+    String nombre
+) {}
+```
+
+3. Patrones de validación por tipo de dato:
+
+| Tipo de campo | Regex recomendado | Max length |
+|---|---|---|
+| Número de póliza | `^[0-9]+$` | 20 |
+| Número de documento (cédula/NIT) | `^[0-9]+$` | 15 |
+| Código de ramo | `^[0-9]{1,4}$` | 4 |
+| Nombre/texto libre | `^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s.,'-]*$` | 100-200 |
+| Email | Usar `@Email` de Jakarta | 100 |
+| Fecha (string) | `^\\d{4}-\\d{2}-\\d{2}$` | 10 |
+| UUID | `^[0-9a-fA-F-]{36}$` | 36 |
+| Código alfanumérico | `^[A-Z0-9_]+$` | 20 |
+
+4. **Nunca pasar input sin validar al Adaptador V3.** Si un campo no tiene `@Pattern`, al menos debe tener `@Size` para prevenir payloads absurdamente grandes.
+
+5. Manejo del error de validación — Spring Boot 3 retorna 400 automáticamente con `MethodArgumentNotValidException`. Si se necesita personalizar:
+
+```java
+@RestControllerAdvice
+public class ValidationExceptionHandler {
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
+        List<String> errors = ex.getBindingResult().getFieldErrors().stream()
+                .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                .toList();
+        return ResponseEntity.badRequest().body(Map.of(
+                "codigo", "VAL-001",
+                "mensaje", "Error de validación",
+                "errores", errors
+        ));
+    }
+}
+```
+
+---
+
 ### 4.1 Interfaz
 
 Definir un contrato claro en `commons/adapter/`:
@@ -605,8 +675,10 @@ class MiCoreServiceImplTest {
 - [ ] Crear DTO de salida en `commons/dto/` si es necesario.
 - [ ] Agregar método en `ExpedientePolizaCoreService` (interfaz + implementación).
 - [ ] Crear Service de la operación (interfaz + implementación).
-- [ ] Crear Controller con anotaciones Swagger.
-- [ ] Crear Request/Response en `models/`.
+- [ ] Crear Controller con anotaciones Swagger y `@Valid` en el request.
+- [ ] Crear Request/Response en `models/` con Bean Validation (`@NotBlank`, `@Size`, `@Pattern`).
+- [ ] Verificar que NO se pasa input sin validar al Adaptador V3.
 - [ ] Escribir tests unitarios (Repository, CoreService, Service, Controller).
+- [ ] Escribir test de validación de input (enviar datos inválidos → esperar 400).
 - [ ] Crear `README.md` del módulo.
 - [ ] Actualizar `README.md` principal.
