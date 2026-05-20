@@ -19,6 +19,9 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 - Se condicionó `OpenApiConfig` con `@Profile({"dev", "stage"})` en el scaffolding — Swagger/OpenAPI ya no se expone en producción
 - Se agregó sección "Validación de Input Obligatoria" en `estandares-adapter-v3.md` — Bean Validation con `@Valid`, `@NotBlank`, `@Size`, `@Pattern` es ahora requisito para todo Request antes de llegar al Adaptador V3
 - Se actualizó checklist de nueva operación para incluir validación de input y test de datos inválidos
+
+### Agregado
+- Se creó hook `collision-check-db` (preToolUse/write) — intercepta toda escritura y verifica automáticamente si el archivo es de BD Oracle; si lo es, ejecuta detección de colisiones (Git + Jira + Oracle) antes de permitir la escritura
 - Se agregó script `build-emision-json.js` — ensamblador de JSON de emisión con validaciones de negocio, soporte de templates, metadata y exclusión automática de campos innecesarios (MrcCtzcn)
 - Se creó página de memoria "450 - CUMPLIMIENTO PARTICULARES" en Confluence (espacio BDCT) con valores validados, restricciones y NR_UNC de referencia
 - Se creó steering `publicacion-librerias-jfrog.md` — guía completa para publicar librerías Gradle en JFrog Artifactory usando el template de DevOps (`devops-actions-library-templates`)
