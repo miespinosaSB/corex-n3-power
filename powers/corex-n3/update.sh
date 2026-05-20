@@ -55,6 +55,18 @@ if [ -d "$SCRIPTS_SRC" ]; then
     echo "✅ $SCRIPT_COUNT scripts actualizados"
 fi
 
+# 2b. Actualizar hooks globales
+HOOKS_SRC="$SCRIPT_DIR/../../.kiro/hooks"
+HOOKS_DIR="$KIRO_DIR/hooks"
+if [ -d "$HOOKS_SRC" ]; then
+    mkdir -p "$HOOKS_DIR"
+    HOOK_COUNT=0
+    for hook_file in "$HOOKS_SRC"/*.kiro.hook; do
+        [ -f "$hook_file" ] && cp "$hook_file" "$HOOKS_DIR/" && HOOK_COUNT=$((HOOK_COUNT + 1))
+    done
+    [ $HOOK_COUNT -gt 0 ] && echo "✅ $HOOK_COUNT hooks actualizados"
+fi
+
 # 3. Actualizar TODOS los agentes (dinámico)
 mkdir -p "$AGENT_DIR"
 AGENT_SRC_DIR="$SCRIPT_DIR/agents"
