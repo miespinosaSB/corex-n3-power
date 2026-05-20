@@ -4,6 +4,12 @@ inclusion: auto
 
 # Detección de Colisiones — Protección contra sobreescritura
 
+## ⛔ GATE BLOQUEANTE — NUNCA SALTABLE
+
+Este steering define un **gate obligatorio** que se ejecuta ANTES de cualquier modificación a archivos de base de datos Oracle. **No es opcional. No se puede omitir. No se puede posponer.**
+
+Si el agente intenta modificar un archivo `.pkb`, `.pks`, `.prc`, `.fnc`, `.trg`, o `.sql` (en carpetas de BD) sin haber ejecutado primero las 3 señales de verificación → **el cambio es inválido**.
+
 ## Regla Fundamental
 
 ⚠️ **ANTES de modificar cualquier archivo de Base Datos** (`.pkb`, `.pks`, `.prc`, `.fnc`, `.trg`, `.sql`), el agente DEBE ejecutar una verificación de colisiones para detectar si otro desarrollador ya está trabajando en el mismo objeto.

@@ -11,10 +11,7 @@ Eres un agente especializado en implementar cambios de código para la Tribu Cor
 ### Comando: "Implementa el fix para GD986-XXXX"
 
 1. **Obtener contexto del caso Jira** — leer la HU/Error Productivo para entender qué se debe cambiar
-2. **Verificar colisiones** — antes de tocar cualquier archivo:
-   - `git branch -a | grep <archivo>` — ramas activas que tocan el mismo archivo
-   - `jira_search` — HUs en progreso que mencionan el mismo objeto
-   - Si hay colisión → alertar y DETENER
+2. **⛔ GATE: Verificar colisiones** — OBLIGATORIO antes de tocar cualquier archivo (ver sección "Detección de colisiones" abajo). Ejecutar las 3 señales: Git + Jira + Oracle. Si resultado es 🟡 o 🔴 → DETENER y alertar.
 3. **Crear rama** desde master: `git checkout -b GD986-XXXX master`
 4. **Leer código fuente actual** — entender el contexto completo antes de cambiar
 5. **Análisis de impacto** — verificar dependencias del objeto a modificar:
@@ -82,21 +79,73 @@ Solo pasos 1-3 del flujo anterior.
 3. **No inventar código** — si no estás seguro de la lógica, preguntar al usuario
 4. **Grants y sinónimos** — si se crea un objeto nuevo, generar los scripts de grants correspondientes
 
-## Detección de colisiones (OBLIGATORIO)
+## Detección de colisiones (GATE BLOQUEANTE — NO SALTABLE)
 
-Antes de modificar CUALQUIER archivo `.pkb`, `.pks`, `.prc`, `.fnc`, `.trg`:
+⛔ **ESTE PASO ES UN GATE. NO SE PUEDE SALTAR NI OMITIR BAJO NINGUNA CIRCUNSTANCIA.**
+
+Antes de modificar CUALQUIER archivo `.pkb`, `.pks`, `.prc`, `.fnc`, `.trg`, `.sql`:
+
+### Señal 1: Ramas activas en Git
 
 ```bash
-# 1. Ramas activas que tocan el archivo
-git log --all --oneline --since="30 days ago" -- "Base Datos/Paquetes/NOMBRE.pkb"
+git fetch --all --prune
 
-# 2. Verificar si hay cambios no mergeados
-git branch -a --contains $(git log -1 --format=%H -- "Base Datos/Paquetes/NOMBRE.pkb")
+# Buscar ramas no mergeadas que toquen el archivo
+git log --all --oneline --source --remotes --not refs/remotes/origin/dev -- "Base Datos/Paquetes/NOMBRE.pkb" "Base Datos/Paquetes/NOMBRE.pks"
+
+# Buscar por nombre del objeto en commits recientes
+git log --all --oneline --since="30 days ago" --grep="NOMBRE_OBJETO"
 ```
 
-Si detectas que otro desarrollador modificó el archivo en los últimos 30 días:
-- **ALERTAR** al usuario con: quién, cuándo, en qué rama
-- **NO PROCEDER** sin confirmación explícita
+### Señal 2: Historias en progreso en Jira
+
+```
+jira_search(
+  jql='project in (GD980,GD981,GD982,GD983,GD984,GD986,GD987,GD988,GD989) AND status in ("In Progress","En Progreso","En curso","En desarrollo","Code Review") AND text ~ "NOMBRE_OBJETO" ORDER BY updated DESC',
+  fields='summary,status,assignee',
+  limit=10
+)
+```
+
+### Señal 3: Estado del objeto en Oracle
+
+```sql
+SELECT object_name, object_type, status, last_ddl_time
+FROM all_objects
+WHERE object_name = 'NOMBRE_OBJETO'
+  AND owner = 'OPS$PUMA'
+  AND object_type IN ('PACKAGE', 'PACKAGE BODY', 'PROCEDURE', 'FUNCTION', 'TRIGGER')
+ORDER BY last_ddl_time DESC
+```
+
+### Evaluación
+
+| Resultado | Acción |
+|---|---|
+| 🟢 Ninguna señal activa | Proceder con la implementación |
+| 🟡 Actividad no concluyente (rama vieja, DDL >7 días) | Informar al usuario, pedir confirmación |
+| 🔴 Rama activa no mergeada O HU en progreso de otro dev | **DETENER. NO ESCRIBIR.** Mostrar quién y qué, pedir coordinación |
+
+### Formato de alerta (🟡 o 🔴)
+
+```markdown
+## ⚠️ COLISIÓN DETECTADA en: <NOMBRE_OBJETO>
+
+| Señal | Hallazgo |
+|---|---|
+| Git | Rama `GD986-XXXX` tiene commits sobre este archivo (autor: Fulano) |
+| Jira | GD987-YYYY "título" en estado "En Progreso" (assignee: Fulano) |
+| Oracle | last_ddl_time: DD/MM/YYYY (hace X días) |
+
+**⛔ No procedo hasta que confirmes.** Opciones:
+1. Coordinar con <nombre> antes de continuar
+2. Confirmar que puedo proceder (bajo tu responsabilidad)
+3. Cancelar la implementación
+```
+
+### Regla de oro
+
+> Si hay CUALQUIER duda sobre si alguien más está tocando el mismo objeto, **PREGUNTAR ANTES DE ESCRIBIR**. Es preferible perder 5 minutos preguntando que sobreescribir el trabajo de un compañero.
 
 ## Formato del PR (pull_request.md)
 
