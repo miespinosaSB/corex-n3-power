@@ -13,6 +13,12 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 ### Agregado
 - Se creó steering `owasp-top10-seguridad.md` — reglas de seguridad OWASP Top 10 (2021) adaptadas al stack Corex: Spring Boot 3, Adaptador V3, Oracle/PL-SQL, API Gateway. Incluye ejemplos de código, checklist de code review y sección específica para PL/SQL
 - Se agregó sub-agente `corex-emission-builder` (Ctrl+Shift+E) — generador de JSON para API Liviano de Emisión con consulta Oracle en tiempo real, memoria en Confluence, y modo cotización (proceso 241/240)
+
+### Cambiado
+- Se reforzó `SecurityHeadersFilter` en `scaffolding-microservicio.md` — ahora incluye 7 headers de seguridad (antes solo 2): X-Frame-Options, Cache-Control, Pragma, Content-Security-Policy, X-Permitted-Cross-Domain-Policies
+- Se condicionó `OpenApiConfig` con `@Profile({"dev", "stage"})` en el scaffolding — Swagger/OpenAPI ya no se expone en producción
+- Se agregó sección "Validación de Input Obligatoria" en `estandares-adapter-v3.md` — Bean Validation con `@Valid`, `@NotBlank`, `@Size`, `@Pattern` es ahora requisito para todo Request antes de llegar al Adaptador V3
+- Se actualizó checklist de nueva operación para incluir validación de input y test de datos inválidos
 - Se agregó script `build-emision-json.js` — ensamblador de JSON de emisión con validaciones de negocio, soporte de templates, metadata y exclusión automática de campos innecesarios (MrcCtzcn)
 - Se creó página de memoria "450 - CUMPLIMIENTO PARTICULARES" en Confluence (espacio BDCT) con valores validados, restricciones y NR_UNC de referencia
 - Se creó steering `publicacion-librerias-jfrog.md` — guía completa para publicar librerías Gradle en JFrog Artifactory usando el template de DevOps (`devops-actions-library-templates`)
